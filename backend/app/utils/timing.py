@@ -10,14 +10,8 @@ import inspect
 import logging
 import time
 
-logger = logging.getLogger("pipeline.timing")
-if not logger.handlers:
-    _handler = logging.StreamHandler()
-    _handler.setFormatter(logging.Formatter("[%(asctime)s] %(message)s", "%H:%M:%S"))
-    logger.addHandler(_handler)
-    logger.setLevel(logging.INFO)
-    logger.propagate = False
 
+logger = logging.getLogger(__name__)
 
 def _label(args, kwargs) -> str:
     """Best-effort (subject, predicate, object) string for the call being timed."""

@@ -10,9 +10,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import api_router
 
-# Load environment variables
-load_dotenv()
-
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -26,14 +23,15 @@ async def lifespan(app: FastAPI):
     """Lifespan event handler for application startup and shutdown tasks."""
     # Verify critical environment variables on startup
     required_keys = ["OPENAI_API_KEY"]
+    missing_keys = [key for key in required_keys if not os.getenv(key)]
     present_keys = [key for key in required_keys if os.getenv(key)]
 
-    if not present_keys:
+    if missing_keys:
         logger.warning(
-            "No primary LLM API keys found in environment! API requests requiring LLM backends may fail."
+            "Missing API Keys: %s. The application may not function correctly.",", ".join(missing_keys)
         )
     else:
-        logger.info(f"Initialized with API keys for: {', '.join(present_keys)}")
+        logger.info("Initialized with API keys: %s", ", ".join(present_keys))
 
     yield
     logger.info("Shutting down Co-constructive Interfaces API...")
