@@ -1,34 +1,76 @@
+from contextlib import asynccontextmanager
+import logging
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.api import api_router
 
+# Load environment variables
+load_dotenv()
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger("co-constructive_interfaces_api")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan event handler for application startup and shutdown tasks."""
+    # Verify critical environment variables on startup
+    required_keys = ["OPENAI_API_KEY"]
+    present_keys = [key for key in required_keys if os.getenv(key)]
+
+    if not present_keys:
+        logger.warning(
+            "No primary LLM API keys found in environment! API requests requiring LLM backends may fail."
+        )
+    else:
+        logger.info(f"Initialized with API keys for: {', '.join(present_keys)}")
+
+    yield
+    logger.info("Shutting down Co-constructive Interfaces API...")
+
+
 app = FastAPI(
-    title="Concept Map Pipeline API",
-    description="Backend service for evaluating, correcting, and resolving concept maps.",
+    title="Co-constructive Interfaces API",
+    description="Backend service for co-building diagrams from LLM outputs.",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
-# Enable CORS for Vite frontend
+# Parse CORS origins from environment variable, fallback to default local Vite dev ports
+default_origins = "http://localhost:5173,http://127.0.0.1:5173"
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv("ALLOWED_ORIGINS", default_origins).split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Mount API routes under /api
+# Mount API endpoints
 app.include_router(api_router, prefix="/api")
 
-@app.get("/")
-def health_check():
-    return {"status": "ok", "service": "Concept Map Pipeline API"}
+
+@app.get("/", tags=["Health"])
+async def health_check():
+    """Health check endpoint to verify backend operational state."""
+    return {
+        "status": "ok",
+        "service": app.title,
+        "version": app.version,
+    }
