@@ -1,10 +1,3 @@
-from app.prompts.evaluator import TEXT_JUDGMENT_SYSTEM_PROMPT, GRAPH_JUDGMENT_SYSTEM_PROMPT
-from app.prompts.corrector import CORRECTOR_SYSTEM_PROMPT
-from app.prompts.resolver import RESOLVER_SYSTEM_PROMPT, RELATION_MATCH_SYSTEM_PROMPT
-from app.prompts.hinter import HINTER_SYSTEM_PROMPT
-from app.prompts.graph_resolver import GRAPH_RESOLVER_SYSTEM_PROMPT
-from app.prompts.gap_analyzer import GAP_ANALYZER_SYSTEM_PROMPT
-from app.prompts.segmenter import SEGMENTER_SYSTEM_PROMPT
 from app.prompts.classifier import SHAPE_CLASSIFIER_SYSTEM_PROMPT
 from app.prompts.simple_agent import SIMPLE_AGENT_SYSTEM_PROMPT
 from app.prompts.node_resolution import NODE_RESOLUTION_SYSTEM_PROMPT

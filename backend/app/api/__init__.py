@@ -1,1 +1,1 @@
-from app.api.endpoints import router as api_router, check_triplet
+from app.api.endpoints import router as api_router

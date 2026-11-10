@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import api_router
+from app.api.error_handling import register_exception_handlers
 
 # Configure logging
 logging.basicConfig(
@@ -52,6 +53,7 @@ allowed_origins = [
     if origin.strip()
 ]
 
+register_exception_handlers(app)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
