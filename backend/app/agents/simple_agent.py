@@ -1,0 +1,188 @@
+# ============================================================
+# app/agents/simple_agent.py
+# ============================================================
+import re
+import time
+from typing import List, Dict, Any, Optional, Tuple
+
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+
+from app.schemas import MapEvaluation
+from app.prompts import SIMPLE_AGENT_SYSTEM_PROMPT
+from app.utils.graph_parser import _norm, extract_edges
+from app.utils.timing import log_timing, logger
+
+_TRIPLET_RE = re.compile(r"^\s*(.+?)\s*--\[?(.+?)\]?-->\s*(.+?)\s*$")
+
+
+def _parse_correction(s: str) -> Optional[dict]:
+    """Turn 'subject --[relation]--> object' into a triplet dict, or None when the model wrote
+    guidance instead of a triplet. Guidance is still shown to the student as a hint; it just cannot
+    be offered as an edge to draw."""
+    if not s or not s.strip():
+        return None
+    m = _TRIPLET_RE.match(s.strip())
+    if not m:
+        return None
+    subj, pred, obj = (p.strip() for p in m.groups())
+    return {"subject": subj, "predicate": pred, "object": obj} if subj and pred and obj else None
+
+
+def _verify_quote(quote: str, source_text: str) -> bool:
+    """Whitespace-normalised substring check. 'unsupported' and empty are not quotes and are
+    exempt - only a non-empty quote that is absent from the text is a failure."""
+    q = " ".join((quote or "").split()).casefold()
+    if not q or q == "unsupported":
+        return True
+    return q in " ".join(source_text.split()).casefold()
+
+
+def _is_edge(e: dict) -> bool:
+    return isinstance(e, dict) and e.get("subject") and e.get("predicate") and e.get("object")
+
+
+@log_timing
+async def evaluate_map(source_text: str, edges: List[dict],
+                       model: str = "gpt-4o-mini") -> Tuple[List[dict], dict]:
+    non_edges = [e for e in edges if not _is_edge(e)]
+    edges = [dict(e) for e in edges if _is_edge(e)]
+    if not edges:
+        return non_edges, {"summary": {"verified": 0, "flagged": 0, "blocked": 0},
+                    "results": [], "student": []}
+
+    # Skip edges already judged (either direction). The frontend clears both fields when the
+    # student edits a triplet, so an unchanged triplet is never re-evaluated.
+    already_judged = {i for i, e in enumerate(edges)
+                      if e.get("verified") or e.get("flagged")}
+    to_grade = {i: e for i, e in enumerate(edges) if i not in already_judged}
+
+    # Nothing left to grade.
+    if not to_grade:
+        results, student = [], []
+        for e in edges:
+            trip = {k: e[k] for k in ("subject", "predicate", "object")}
+            if e.get("verified"):
+                results.append({"triplet": trip, "state": "verified",
+                                 "note": "already verified"})
+                student.append({"triplet": trip, "state": "verified", "status": None,
+                                 "reflection": None, "hint": None, "suggested_triplets": []})
+            else:
+                j = e.get("_judgment", {})
+                fix = _parse_correction(j.get("suggested_correction", ""))
+                results.append({"triplet": trip, "state": "flagged", "status": "incorrect",
+                                 "note": "already judged"})
+                student.append({"triplet": trip, "state": "flagged", "status": "incorrect",
+                                 "reflection": None, "hint": j.get("justification"),
+                                 "suggested_triplets": [fix] if fix else []})
+        summary = {
+            "verified": sum(1 for r in results if r["state"] == "verified"),
+            "flagged":  sum(1 for r in results if r["state"] == "flagged"),
+            "blocked":  0,
+        }
+        return non_edges + edges, {"summary": summary, "results": results, "student": student}
+
+    # Already-judged edges appear as context so the model can detect duplicates and
+    # contradictions against them, but labelled so it returns no verdict for them.
+    already_lines = "\n".join(
+        f"{i}: {edges[i]['subject']} --[{edges[i]['predicate']}]--> {edges[i]['object']}"
+        f"  [already judged: {'correct' if edges[i].get('verified') else 'incorrect'} - do not grade]"
+        for i in sorted(already_judged)
+    )
+    grade_lines = "\n".join(
+        f"{i}: {e['subject']} --[{e['predicate']}]--> {e['object']}"
+        for i, e in sorted(to_grade.items())
+    )
+
+    agent = ChatOpenAI(model=model, temperature=0).with_structured_output(MapEvaluation)
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", SIMPLE_AGENT_SYSTEM_PROMPT),
+        ("human",
+         "REFERENCE TEXT:\n{text}\n\n"
+         "ALREADY JUDGED EDGES (context only - do NOT return evaluations for these):\n{already}\n\n"
+         "Evaluate each edge below ONE AT A TIME, in order. For each: find the relevant text, "
+         "judge it, record the verdict before moving to the next.\n\n"
+         "EDGES TO GRADE:\n{to_grade}\n\n"
+         "Return exactly {n} evaluations, one per index.")
+    ])
+    result = await agent.ainvoke(prompt.format_prompt(
+        text=source_text,
+        already=already_lines or "(none)",
+        to_grade=grade_lines,
+        n=len(to_grade)))
+
+    by_idx = {ev.edge_index: ev for ev in result.evaluations}
+    missing = [i for i in to_grade if i not in by_idx]
+    if missing:
+        print(f"   [evaluate_map: model returned no verdict for indices {missing}]")
+
+    results, student = [], []
+
+    for i, edge in enumerate(edges):
+        trip = {"subject": edge["subject"], "predicate": edge["predicate"],
+                "object": edge["object"]}
+
+        # Already judged — pass through using stored verdict.
+        if i in already_judged:
+            if edge.get("verified"):
+                results.append({"triplet": trip, "state": "verified",
+                                 "note": "already verified"})
+                student.append({"triplet": trip, "state": "verified", "status": None,
+                                 "reflection": None, "hint": None,
+                                 "suggested_triplets": []})
+            else:
+                j = edge.get("_judgment", {})
+                fix = _parse_correction(j.get("suggested_correction", ""))
+                results.append({"triplet": trip, "state": "flagged", "status": "incorrect",
+                                 "note": "already judged"})
+                student.append({"triplet": trip, "state": "flagged", "status": "incorrect",
+                                 "reflection": None,
+                                 "hint": j.get("justification"),
+                                 "suggested_triplets": [fix] if fix else []})
+            continue
+
+        ev = by_idx.get(i)
+        if ev is None:
+            results.append({"triplet": trip, "state": "flagged", "status": "not_evaluated"})
+            student.append({"triplet": trip, "state": "flagged", "status": "not_evaluated",
+                            "reflection": None,
+                            "hint": "Could not be checked - try again.",
+                            "suggested_triplets": []})
+            continue
+
+        quote_ok = _verify_quote(ev.text_grounded, source_text)
+        if ev.verdict == "correct":
+            edge["verified"] = True
+            edge.pop("flagged", None)
+            edge.pop("_judgment", None)
+            results.append({"triplet": trip, "state": "verified",
+                            "confidence": ev.confidence,
+                            "text_grounded": ev.text_grounded,
+                            "quote_verified": quote_ok,
+                            "justification": ev.justification})
+            student.append({"triplet": trip, "state": "verified", "status": None,
+                            "reflection": None, "hint": None, "suggested_triplets": []})
+        else:
+            edge["flagged"] = True
+            edge["_judgment"] = {
+                "justification": ev.justification,
+                "suggested_correction": ev.suggested_correction,
+            }
+            fix = _parse_correction(ev.suggested_correction)
+            results.append({"triplet": trip, "state": "flagged", "status": "incorrect",
+                            "confidence": ev.confidence,
+                            "text_grounded": ev.text_grounded,
+                            "quote_verified": quote_ok,
+                            "justification": ev.justification,
+                            "suggested_correction": ev.suggested_correction})
+            student.append({"triplet": trip, "state": "flagged", "status": "incorrect",
+                            "reflection": None,
+                            "hint": ev.justification,
+                            "suggested_triplets": [fix] if fix else []})
+
+    summary = {
+        "verified": sum(1 for r in results if r["state"] == "verified"),
+        "flagged":  sum(1 for r in results if r["state"] == "flagged"),
+        "blocked":  0,
+    }
+    return non_edges + edges, {"summary": summary, "results": results, "student": student}

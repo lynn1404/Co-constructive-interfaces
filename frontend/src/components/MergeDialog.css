@@ -1,0 +1,64 @@
+.merge-dialog-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.merge-dialog {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 24px;
+  width: 320px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.merge-dialog__eyebrow {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #78716c;
+  margin-bottom: 8px;
+}
+
+.merge-dialog__preview {
+  font-size: 1.05rem;
+  margin-bottom: 16px;
+}
+
+.merge-dialog__input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #9a9797;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  margin-bottom: 16px;
+}
+
+.merge-dialog__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.merge-dialog__confirm {
+  flex: 1;
+  background: #0c0101;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.merge-dialog__cancel {
+  flex: 1;
+  background: white;
+  border: 1px solid #d6d3d1;
+  border-radius: 6px;
+  padding: 10px;
+  cursor: pointer;
+}

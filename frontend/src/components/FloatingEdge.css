@@ -1,0 +1,111 @@
+.floating-edge__label {
+  font-size: 11px;
+  fill: #4b5563;
+  paint-order: stroke;
+  stroke: white;
+  stroke-width: 3px;
+}
+
+.edge-label {
+  position: absolute;
+  pointer-events: all;
+  z-index: 1000;
+}
+
+.edge-label__input {
+  font-size: 12px;
+  padding: 2px 6px;
+  border: 1px solid #2563eb;
+  border-radius: 4px;
+  width: 100px;
+}
+
+.edge-label__text {
+  font-size: 11px;
+  background: white;
+  padding: 1px 4px;
+  border-radius: 3px;
+  color: #4b5563;
+  cursor: text;
+}
+
+.edge-label__text:hover {
+  outline: 1px dashed #d1d5db;
+}
+
+.edge-label__text--pending {
+  color: #9ca3af;
+  font-style: italic;
+  cursor: default;
+}
+
+.edge-label__row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.edge-status-icon {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 50%;
+}
+
+.edge-status-icon--correct {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.edge-status-icon--worth-check {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.edge-status-icon--blocked {
+  color: #6b7280;
+  background: #f3f4f6;
+}
+
+.edge-panel-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b7280;
+  background: transparent;
+}
+
+.edge-panel-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.edge-delete-btn {
+  position: absolute;
+  pointer-events: all;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.edge-delete-btn:hover {
+  background: #fee2e2;
+  border-color: #dc2626;
+}

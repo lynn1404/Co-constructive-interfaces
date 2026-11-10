@@ -1,0 +1,83 @@
+.gap-analysis-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.gap-analysis-dialog {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 20px;
+  width: 380px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.gap-analysis-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.gap-analysis-dialog__title {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.gap-analysis-dialog__close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: #6b7280;
+  line-height: 1;
+}
+
+.gap-analysis-dialog__overall {
+  font-size: 0.85rem;
+  color: #44403c;
+  margin: 0 0 14px;
+}
+
+.gap-analysis-dialog__empty {
+  font-size: 0.85rem;
+  color: #78716c;
+}
+
+.gap-analysis-dialog__list {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gap-analysis-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #f9fafb;
+  font: inherit;
+}
+
+.gap-analysis-item__area {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #b45309;
+  margin-bottom: 4px;
+}
+
+.gap-analysis-item__nudge {
+  font-size: 0.82rem;
+  color: #44403c;
+  margin: 0;
+}

@@ -1,0 +1,184 @@
+.canvas {
+  height: 100%;
+  width: 100%;
+
+}
+
+.canvas {
+  position: relative; /* needed so the button can be absolutely positioned within it */
+}
+
+.canvas__flow-wrapper {
+  height: 100%;
+  width: 100%;
+}
+
+.canvas-toolbar-topleft {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+}
+
+.merge-trigger-btn {
+  background: #0a0101;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.canvas-toolbar {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.canvas-toolbar__row {
+  display: flex;
+  gap: 8px;
+}
+
+.canvas-toolbar__errors {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.verify-graph-btn {
+  background: #16a34a;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.verify-graph-btn:hover:not(:disabled) {
+  background: #15803d;
+}
+
+.verify-graph-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.check-similar-nodes-btn,
+.analyze-gaps-btn {
+  background: white;
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.check-similar-nodes-btn:hover:not(:disabled),
+.analyze-gaps-btn:hover:not(:disabled) {
+  border-color: #93c5fd;
+}
+
+.check-similar-nodes-btn:disabled,
+.analyze-gaps-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.analyze-gaps-error,
+.check-similar-nodes-error,
+.verify-graph-error {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  max-width: 260px;
+}
+
+.verification-toggle-chip {
+  position: absolute;
+  top: 64px;
+  right: 16px;
+  z-index: 10;
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.verification-toggle-chip:hover {
+  background: #e5e7eb;
+}
+
+.verification-toggle-chip--active {
+  background: #2563eb;
+  color: white;
+}
+
+.verification-toggle-chip--active:hover {
+  background: #1d4ed8;
+}
+
+.restricted-links-toggle-btn {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
+  background: white;
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.restricted-links-toggle-btn:hover {
+  border-color: #93c5fd;
+}
+
+.restricted-links-toggle-btn--active {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+.create-node-btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.create-node-btn:hover {
+  background: #1d4ed8;
+}

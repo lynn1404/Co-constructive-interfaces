@@ -1,0 +1,172 @@
+.edge-link-picker {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 260px;
+  max-height: 320px;
+  pointer-events: all;
+}
+
+.edge-link-picker__header {
+  flex: none;
+  padding: 6px 6px 4px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.edge-link-picker__handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 14px;
+  margin: -2px -2px 4px;
+  border-radius: 4px 4px 0 0;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: #9ca3af;
+  background: #f9fafb;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.edge-link-picker__handle:active {
+  cursor: grabbing;
+  background: #f3f4f6;
+}
+
+.edge-link-picker__title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #374151;
+  padding: 2px 4px 2px;
+  line-height: 1.35;
+}
+
+.edge-link-picker__back {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  color: #2563eb;
+  padding: 0 2px;
+}
+
+.edge-link-picker__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+}
+
+.edge-link-picker__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.edge-link-picker__option {
+  text-align: left;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  padding: 5px 6px;
+  font-size: 12px;
+  color: #1f2937;
+  cursor: pointer;
+}
+
+.edge-link-picker__option:hover {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.edge-link-picker__option--category {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 8px;
+}
+
+.edge-link-picker__category-name {
+  font-weight: 600;
+  color: inherit;
+}
+
+.edge-link-picker__category-examples {
+  font-size: 10px;
+  color: #6b7280;
+}
+
+.edge-link-picker__option--category:hover .edge-link-picker__category-examples {
+  color: #60a5fa;
+}
+
+.edge-link-picker__footer {
+  flex: none;
+  padding: 4px 6px 6px;
+  border-top: 1px solid #e5e7eb;
+  background: white;
+}
+
+.edge-link-picker__option--custom {
+  width: 100%;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.edge-link-picker__option--custom:hover {
+  color: #2563eb;
+}
+
+.edge-link-picker__custom-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 2px;
+}
+
+.edge-link-picker__custom-input {
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: #1f2937;
+}
+
+.edge-link-picker__custom-input:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+.edge-link-picker__custom-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.edge-link-picker__custom-submit {
+  border: none;
+  background: #2563eb;
+  color: white;
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.edge-link-picker__custom-submit:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
