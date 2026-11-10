@@ -1,7 +1,7 @@
 from typing import List, Optional, Dict, Any, Literal
 from pydantic import BaseModel, Field
 
-from app.schemas.agent_outputs import Gap, ExtractedConcept, MergeGroup
+from app.schemas.llms_outputs import Gap, ExtractedConcept, MergeGroup
 
 
 class ChatMessage(BaseModel):

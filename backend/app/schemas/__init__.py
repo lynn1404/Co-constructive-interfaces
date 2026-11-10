@@ -1,4 +1,4 @@
-from app.schemas.agent_outputs import (
+from app.schemas.llms_outputs import (
     ShapeClassification, 
     ShapeOption, 
     MapEvaluation, 
@@ -8,9 +8,7 @@ from app.schemas.agent_outputs import (
     Gap, 
     GapAnalysis,
     SimpleSegmenterOutput,
-    ExtractedConcept,
-    SegmenterOutput
-
+    ExtractedConcept
 )
 from app.schemas.api_payloads import (ChatRequest,
                                       ChatResponse,
