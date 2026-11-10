@@ -43,7 +43,7 @@ async def chat_endpoint(payload: ChatRequest):
         raise AppError("The message is empty.", code="empty_message")
 
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
-    messages = [(m["role"], m["content"]) for m in payload.history]
+    messages = [(m.role, m.content) for m in payload.history]
     messages.append(("user", payload.message))
     result = await llm.ainvoke(messages)
     answer = result.content

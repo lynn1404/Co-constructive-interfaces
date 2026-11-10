@@ -1,3 +1,4 @@
+from typing import Optional
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from app.utils.graph_parser import _norm

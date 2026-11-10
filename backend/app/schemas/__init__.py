@@ -1,19 +1,6 @@
 from app.schemas.agent_outputs import (
-    Triplet,
-    RelationMatch,
-    ResolverOutput,
-    CorrectorOutput,
-    HinterOutput,
-    ClusterResolution,
-    TextJudgmentOutput,
-    GraphJudgmentOutput, 
-    GapAnalysisOutput,
-    GapArea,
-    ExtractedConcept,
     ShapeClassification, 
     ShapeOption, 
-    ChatRequest, 
-    ChatResponse, 
     MapEvaluation, 
     EdgeEvaluation,
     MergeGroup,
@@ -25,7 +12,9 @@ from app.schemas.agent_outputs import (
     SegmenterOutput
 
 )
-from app.schemas.api_payloads import (ResolveNodesRequest, 
+from app.schemas.api_payloads import (ChatRequest,
+                                      ChatResponse,
+                                      ResolveNodesRequest, 
                                       ResolveNodesResponse, 
                                       ClassifyShapeRequest, 
                                       ClassifyShapeResponse, 
