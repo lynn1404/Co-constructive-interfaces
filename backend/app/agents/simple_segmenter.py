@@ -1,7 +1,7 @@
 
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
 
+from app.config import get_llm
 from app.prompts import SIMPLE_SEGMENTER_SYSTEM_PROMPT
 from app.schemas import SimpleSegmenterOutput
 from app.utils.graph_parser import _norm
@@ -17,7 +17,7 @@ async def simple_segment_concepts(highlighted_text: str, full_text: str | None =
     if not highlighted_text or not highlighted_text.strip():
         return {"concepts": [], "n_concepts": 0, "reasoning": None}
 
-    agent = ChatOpenAI(model="gpt-4o-mini", temperature=0).with_structured_output(SimpleSegmenterOutput)
+    agent = get_llm().with_structured_output(SimpleSegmenterOutput)
     prompt = ChatPromptTemplate.from_messages([
         ("system", SIMPLE_SEGMENTER_SYSTEM_PROMPT),
         ("human",

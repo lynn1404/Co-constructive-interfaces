@@ -1,11 +1,10 @@
 import logging
 
 from fastapi import APIRouter
-from langchain_openai import ChatOpenAI
 
 #importing error handler for on purpose errors
 #importing chat functions
-from app.agents.classifer import classify_shape
+from app.agents.classifier import classify_shape
 from app.agents.node_resolver import resolve_nodes
 
 #importing pipeline functions
@@ -13,6 +12,7 @@ from app.agents.simple_evaluator import evaluate_map
 from app.agents.simple_gap_analyzer import analyze_gaps_simple
 from app.agents.simple_segmenter import simple_segment_concepts
 from app.api.error_handling import AppError
+from app.config import get_llm
 
 #importing Chat schemas
 #importing pipeline schemas
@@ -41,7 +41,7 @@ async def chat_endpoint(payload: ChatRequest):
     if not payload.message.strip():
         raise AppError("The message is empty.", code="empty_message")
 
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
+    llm = get_llm()
     messages = [(m.role, m.content) for m in payload.history]
     messages.append(("user", payload.message))
     result = await llm.ainvoke(messages)

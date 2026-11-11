@@ -1,7 +1,7 @@
 
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
 
+from app.config import get_llm
 from app.prompts import NODE_RESOLUTION_SYSTEM_PROMPT
 from app.schemas import NodeResolution
 from app.utils.graph_parser import _norm, parse_existing_graph
@@ -30,7 +30,7 @@ async def resolve_nodes(existing_graph: list[dict]) -> dict:
     if len(labels) < 2:
         return {"groups": [], "n_nodes": len(labels)}
 
-    agent = ChatOpenAI(model="gpt-4o-mini", temperature=0).with_structured_output(NodeResolution)
+    agent = get_llm().with_structured_output(NodeResolution)
     prompt = ChatPromptTemplate.from_messages([
         ("system", NODE_RESOLUTION_SYSTEM_PROMPT),
         ("human",

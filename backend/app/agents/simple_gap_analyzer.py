@@ -1,7 +1,7 @@
 
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
 
+from app.config import get_llm
 from app.prompts import SIMPLE_GAP_SYSTEM_PROMPT
 from app.schemas import GapAnalysis
 from app.utils.timing import log_timing, logger
@@ -35,7 +35,7 @@ async def analyze_gaps_simple(source_text: str, existing_graph: list[dict]) -> d
     drawn = "\n".join(f"- {s} --[{p}]--> {o}" for s, p, o in verified_edges)
     logger.info("analyze_gaps_simple: comparing %d verified edge(s) against text", len(verified_edges))
 
-    agent = ChatOpenAI(model="gpt-4o-mini", temperature=0).with_structured_output(GapAnalysis)
+    agent = get_llm().with_structured_output(GapAnalysis)
     prompt = ChatPromptTemplate.from_messages([
         ("system", SIMPLE_GAP_SYSTEM_PROMPT),
         ("human",

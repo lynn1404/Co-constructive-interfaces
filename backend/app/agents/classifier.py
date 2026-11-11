@@ -1,8 +1,8 @@
 import re
 
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
 
+from app.config import get_llm
 from app.prompts import SHAPE_CLASSIFIER_SYSTEM_PROMPT
 from app.schemas import ShapeClassification
 from app.utils.timing import log_timing, logger
@@ -63,7 +63,7 @@ async def classify_shape(answer: str, user_prompt: str | None = None) -> dict:
         return {"is_mappable": False, "shapes": [], "primary": None, "reason": rejected,
                 "gated_by": "prefilter", "is_knowledge": None, "purpose": None, "analysis": None}
 
-    agent = ChatOpenAI(model="gpt-4o-mini", temperature=0).with_structured_output(ShapeClassification)
+    agent = get_llm().with_structured_output(ShapeClassification)
     prompt = ChatPromptTemplate.from_messages([
         ("system", SHAPE_CLASSIFIER_SYSTEM_PROMPT),
         ("human",
