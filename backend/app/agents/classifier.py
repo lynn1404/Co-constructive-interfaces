@@ -5,10 +5,11 @@ from langchain_core.prompts import ChatPromptTemplate
 from app.config import get_llm
 from app.prompts import SHAPE_CLASSIFIER_SYSTEM_PROMPT
 from app.schemas import ShapeClassification
-from app.utils.timing import log_timing, logger
+from app.utils.timing import log_timing, logging
 
 MIN_WORDS = 60
 
+logger = logging.getLogger(__name__)
 
 def _strip_decoration(text: str) -> str:
     """Remove styling that carries no meaning. Headers and list markers are deliberately KEPT - a
