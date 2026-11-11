@@ -30,7 +30,7 @@ def _prefilter(answer: str) -> str | None:
 
 def _derive(result: ShapeClassification) -> tuple:
     """Filter to substantive shapes, primary first.
- 
+
     The model can nominate a primary it also judged too thin; the substantive filter wins.
     """
     worth = [s for s in result.available_shapes if s.is_substantive]
@@ -45,15 +45,15 @@ def _derive(result: ShapeClassification) -> tuple:
 @log_timing
 async def classify_shape(answer: str, user_prompt: str | None = None) -> dict:
     """Decide whether an assistant answer is worth rebuilding as a diagram, and which shapes fit.
- 
+
     Two gates, cheap first: a length prefilter with no model call, then one call that judges purpose
     and shape. The knowledge gate is global and comes before shape, because it cuts ACROSS shape
     rather than along it - a recipe and an explanation of photosynthesis are both processes, and only
     one is worth a diagram.
- 
+
     Returns shapes in preference order, primary first. Only concept_map is rendered today; the other
     three are returned so the data exists on which to decide what to build next.
- 
+
     Returns {"is_mappable", "shapes": [{shape, reason}], "primary", "reason", "gated_by",
              "is_knowledge"} plus two internal fields.
     """

@@ -1,3 +1,4 @@
+import logging
 
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -5,27 +6,19 @@ from app.config import get_llm
 from app.prompts import NODE_RESOLUTION_SYSTEM_PROMPT
 from app.schemas import NodeResolution
 from app.utils.graph_parser import _norm, parse_existing_graph
-from app.utils.timing import log_timing, logger
+from app.utils.timing import log_timing
+
+logger = logging.getLogger(__name__)
 
 
 @log_timing
 async def resolve_nodes(existing_graph: list[dict]) -> dict:
-    """Suggest node merges across the whole graph in one call, no embeddings.
+    """Suggest which node labels name the same concept and could be merged, in one LLM call.
 
-    One call sees all labels at once and groups co-referents. 
-    Returns : 
-    {"groups": [{canonical, members, reason}], "n_nodes": int}.
+    Returns {"groups": [{"members": [...], "reason": str}], "n_nodes": int}.
     """
-    _, nodes = parse_existing_graph(existing_graph)
-
-    # De-dup exact normalised repeats upfront; keep first-seen surface form.
-    seen, labels = set(), []
-    for label in nodes:
-        clean = " ".join(str(label).split())
-        k = _norm(clean)
-        if k not in seen:
-            seen.add(k)
-            labels.append(clean)
+    _, nodes = parse_existing_graph(existing_graph)  # already de-duplicated by _norm
+    labels = [" ".join(str(node).split()) for node in nodes]
 
     if len(labels) < 2:
         return {"groups": [], "n_nodes": len(labels)}
@@ -33,27 +26,25 @@ async def resolve_nodes(existing_graph: list[dict]) -> dict:
     agent = get_llm().with_structured_output(NodeResolution)
     prompt = ChatPromptTemplate.from_messages([
         ("system", NODE_RESOLUTION_SYSTEM_PROMPT),
-        ("human",
-         "Node labels from the student's map:\n{labels}\n\n"
-         "Which should be merged?")
+        ("human", "Node labels from the student's map:\n{labels}\n\nWhich should be merged?"),
     ])
     result = await agent.ainvoke(prompt.format_prompt(
-        labels="\n".join(f"- {l}" for l in labels)))
+        labels="\n".join(f"- {label}" for label in labels)))
 
-    logger.info(f"resolve_nodes: {len(labels)} labels → {len(result.groups)} group(s)")
+    logger.info("resolve_nodes: %d labels -> %d group(s)", len(labels), len(result.groups))
 
-    # Guard: keep only members that were actually in the label list, and only groups with ≥2.
-    valid = {_norm(l): l for l in labels}
+    # Keep only members that really exist on the map (in their original casing),
+    # and only groups that still have at least two members.
+    valid = {_norm(label): label for label in labels}
     out_groups = []
-    for g in result.groups:
-        members, seen_m = [], set()
-        for m in g.members:
-            k = _norm(m)
-            if k in valid and k not in seen_m:
-                seen_m.add(k)
-                members.append(valid[k])   # use the original casing from the map
-        if len(members) < 2:
-            continue
-        out_groups.append({"members": members, "reason": g.reason})
+    for group in result.groups:
+        members, seen = [], set()
+        for member in group.members:
+            key = _norm(member)
+            if key in valid and key not in seen:
+                seen.add(key)
+                members.append(valid[key])
+        if len(members) >= 2:
+            out_groups.append({"members": members, "reason": group.reason})
 
     return {"groups": out_groups, "n_nodes": len(labels)}

@@ -1,13 +1,15 @@
+import logging
 import re
 import unicodedata
-from asyncio.log import logger
 
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
 
+from app.config import get_llm
 from app.prompts import SIMPLE_AGENT_SYSTEM_PROMPT
 from app.schemas import MapEvaluation
 from app.utils.timing import log_timing
+
+logger = logging.getLogger(__name__)
 
 _TRIPLET_RE = re.compile(r"^\s*(.+?)\s*--\[?(.+?)\]?-->\s*(.+?)\s*$")
 _NON_WORD_RE = re.compile(r"[\W_]+")
@@ -46,8 +48,7 @@ def _is_edge(e: dict) -> bool:
 
 
 @log_timing
-async def evaluate_map(source_text: str, edges: list[dict],
-                       model: str = "gpt-4o-mini") -> tuple[list[dict], dict]:
+async def evaluate_map(source_text: str, edges: list[dict]) -> tuple[list[dict], dict]:
     """
     Evaluates a student's knowledge graph by validating each complete triplet against
     the reference text using an LLM. Preserves previously judged edges, evaluates only
@@ -69,7 +70,7 @@ async def evaluate_map(source_text: str, edges: list[dict],
                       if e.get("verified") or e.get("flagged")}
     to_grade = {i: e for i, e in enumerate(edges) if i not in already_judged}
 
-    # Nothing left to grade, so return the existing graph and a report based on the already existing judgments.
+    # Nothing left to grade, so return the existing graph and a report based on already existing judgments.
     if not to_grade:
         results, student = [], []
         for e in edges:
@@ -106,7 +107,7 @@ async def evaluate_map(source_text: str, edges: list[dict],
         for i, e in sorted(to_grade.items())
     )
 
-    agent = ChatOpenAI(model=model, temperature=0).with_structured_output(MapEvaluation)
+    agent = get_llm().with_structured_output(MapEvaluation)
     prompt = ChatPromptTemplate.from_messages([
         ("system", SIMPLE_AGENT_SYSTEM_PROMPT),
         ("human",

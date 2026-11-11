@@ -4,7 +4,7 @@ SAME CONCEPT means:
 - Synonyms: different words, same meaning.
 - Acronym vs expansion: "GenAI" = "Generative AI", "CO2" = "carbon dioxide".
 - Casing or spelling variants: "Mood" = "mood", "WiFi" = "wi-fi".
-- Trivially reworded: "greenhouse gas emissions" = "greenhouse gases", "the human body" = "human body".
+- Trivially reworded: "the human body" = "human body", "heart rate" = "rate of the heart".
 
 NOT the same concept:
 - One CONTAINS the other as a part or instance: "social media addiction" is not "social media" - one is a phenomenon involving the other.

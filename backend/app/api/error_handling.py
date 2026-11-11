@@ -61,7 +61,8 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(openai.AuthenticationError)
     @app.exception_handler(openai.PermissionDeniedError)
     async def handle_auth(request: Request, exc: openai.APIStatusError):
-        logger.error("OpenAI rejected the API key (%s) - check OPENAI_API_KEY in backend/.env", exc.status_code)
+        logger.error("OpenAI rejected the API key (%s) - check OPENAI_API_KEY in backend/.env",
+                      exc.status_code)
         return _error(503, "ai_unavailable", "The AI service is not configured correctly.")
 
     @app.exception_handler(openai.APITimeoutError)
@@ -72,7 +73,7 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(openai.APIConnectionError)
     async def handle_connection(request: Request, exc: openai.APIConnectionError):
         logger.warning("Could not reach OpenAI on %s: %s", request.url.path, exc)
-        return _error(503, "ai_unreachable", "Could not reach the AI service. Check the connection and try again.")
+        return _error(503, "ai_unreachable", "Can't reach AI service. Check the connection and try again.")
 
     @app.exception_handler(openai.BadRequestError)
     async def handle_bad_request(request: Request, exc: openai.BadRequestError):
