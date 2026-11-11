@@ -1,3 +1,6 @@
+// Shapes of the data exchanged with the backend (mirrors backend/app/schemas/api_payloads.py).
+import type { GraphSnapshotEntry } from "./utils/buildGraphSnapshot";
+
 export interface TextHighlight {
   id: string;
   start: number;
@@ -12,51 +15,19 @@ export interface Triplet {
   object: string;
 }
 
-export interface CheckTripletResponse {
-  graph_state: string;
-  verification: {
-    status: string;
-    explanation: string;
-    duplicate_of: string | null;
-    predicate_note: string | null;
-  };
-  correction: {
-    fixed_triplets: Triplet[];
-    explanation: string;
-  } | null;
-  node_resolutions: Record<string, unknown>;
-  suggested_triplets: Triplet[] | null;
-  hint: string | null;
-}
-
-export type GraphSnapshotWireEntry =
-  | {
-      subject: string;
-      predicate: string;
-      object: string;
-      verified?: boolean;
-      flagged?: boolean;
-      _judgment?: { justification: string | null; suggested_correction: string };
-    }
-  | { node: string };
-
-export interface CheckTripletRequest {
-  source_text: string;
-  existing_graph: GraphSnapshotWireEntry[];
-  triplet: Triplet;
-}
-
+// ---- Verify (/simple-evaluate)
 export interface StudentVerificationEntry {
   triplet: Triplet;
+  // "blocked", "incomplete", "redundant", error_type and reflection are not sent by the current
+  // evaluator; still referenced by FloatingEdge and VerificationPanel (to remove with them).
   state: "verified" | "flagged" | "blocked";
-  status: "correct" | "incorrect" | "incomplete" | "redundant" | null;
-  error_type:
+  status: "correct" | "incorrect" | "incomplete" | "redundant" | "not_evaluated" | null;
+  error_type?:
     | "duplicate"
     | "unfinished_process"
     | "skipped_mediator"
     | "not_in_text"
     | "wrong_object"
-    | "wrong_subject"
     | "wrong_subject"
     | "reversed_relation"
     | null;
@@ -67,7 +38,7 @@ export interface StudentVerificationEntry {
 
 export interface VerifyGraphRequest {
   source_text: string;
-  existing_graph: GraphSnapshotWireEntry[];
+  existing_graph: GraphSnapshotEntry[];
 }
 
 export interface VerifyGraphResponse {
@@ -77,40 +48,22 @@ export interface VerifyGraphResponse {
   student: StudentVerificationEntry[];
 }
 
+// ---- Similar nodes (/simple-resolve-nodes)
 export interface SimilarNodeGroup {
-  canonical: string;
   members: string[];
   reason: string;
 }
 
 export interface ResolveNodesRequest {
-  source_text: string;
-  existing_graph: GraphSnapshotWireEntry[];
-  threshold?: number;
+  existing_graph: GraphSnapshotEntry[];
 }
 
 export interface ResolveNodesResponse {
-  clusters: string[][];
   groups: SimilarNodeGroup[];
   n_nodes: number;
 }
 
-export interface GapArea {
-  source_span: string;
-  area: string;
-  nudge: string;
-}
-
-export interface GapAnalysisRequest {
-  source_text: string;
-  existing_graph: GraphSnapshotWireEntry[];
-}
-
-export interface GapAnalysisResponse {
-  gaps: GapArea[];
-  overall: string;
-}
-
+// ---- Gap analysis (/simple-analyze-gaps)
 export interface SimpleGapItem {
   idea: string;
   placement: string;
@@ -118,7 +71,7 @@ export interface SimpleGapItem {
 
 export interface SimpleGapRequest {
   source_text: string;
-  existing_graph: GraphSnapshotWireEntry[];
+  existing_graph: GraphSnapshotEntry[];
 }
 
 export interface SimpleGapResponse {
@@ -127,6 +80,7 @@ export interface SimpleGapResponse {
   n_verified: number;
 }
 
+// ---- Segmentation (/simple-segment-concepts)
 export interface SegmentedConcept {
   label: string;
   source_span: string;
@@ -142,11 +96,9 @@ export interface SegmentResponse {
   n_concepts: number;
 }
 
-export type SimpleSegmentRequest = SegmentRequest;
-export type SimpleSegmentResponse = SegmentResponse;
-
+// ---- Chat (/chat)
 export interface ChatMessage {
-  role: string;
+  role: "user" | "assistant";
   content: string;
 }
 

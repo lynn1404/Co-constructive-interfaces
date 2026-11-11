@@ -1,123 +1,73 @@
+// Client for the FastAPI backend. Every call is a JSON POST; failures become an ApiError whose
+// message is safe to show to the user (the backend's {code, detail} body, see error_handling.py).
 import type {
-  CheckTripletRequest,
-  CheckTripletResponse,
-  VerifyGraphRequest,
-  VerifyGraphResponse,
-  ResolveNodesRequest,
-  ResolveNodesResponse,
-  GapAnalysisRequest,
-  GapAnalysisResponse,
-  SimpleGapRequest,
-  SimpleGapResponse,
-  SegmentRequest,
-  SegmentResponse,
   ChatRequest,
   ChatResponse,
+  ResolveNodesRequest,
+  ResolveNodesResponse,
+  SegmentRequest,
+  SegmentResponse,
+  SimpleGapRequest,
+  SimpleGapResponse,
+  VerifyGraphRequest,
+  VerifyGraphResponse,
 } from "./types";
 
-const API_BASE = "http://localhost:8000/api";
+const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000/api";
 
-export async function checkTriplet(req: CheckTripletRequest): Promise<CheckTripletResponse> {
-  const res = await fetch(`${API_BASE}/check-triplet`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req),
-  });
+/** An error from the backend (or the network). `message` is safe to show to the user. */
+export class ApiError extends Error {
+  readonly status: number;
+  readonly code: string | null;
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`check-triplet failed (${res.status}): ${body}`);
+  constructor(message: string, status: number, code: string | null) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
   }
-
-  return res.json();
 }
 
-export async function verifyGraph(req: VerifyGraphRequest): Promise<VerifyGraphResponse> {
-  const res = await fetch(`${API_BASE}/simple-evaluate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req),
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`verify-graph failed (${res.status}): ${body}`);
+/** Build an ApiError from a failed response, preferring the backend's {code, detail} body. */
+async function toApiError(res: Response): Promise<ApiError> {
+  let message = `Request failed (${res.status})`;
+  let code: string | null = null;
+  try {
+    const body = await res.json();
+    if (typeof body?.detail === "string") message = body.detail;
+    if (typeof body?.code === "string") code = body.code;
+  } catch {
+    // body was not JSON (e.g. a proxy error page): keep the generic message
   }
-
-  return res.json();
+  return new ApiError(message, res.status, code);
 }
 
-export async function analyzeGaps(req: GapAnalysisRequest): Promise<GapAnalysisResponse> {
-  const res = await fetch(`${API_BASE}/analyze-gaps`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req),
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`analyze-gaps failed (${res.status}): ${body}`);
+async function postJson<TReq, TRes>(path: string, body: TReq): Promise<TRes> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    // fetch only throws when the request never got a response (server down, CORS, offline)
+    throw new ApiError("Could not reach the server. Is the backend running?", 0, "network_error");
   }
-
-  return res.json();
+  if (!res.ok) throw await toApiError(res);
+  return res.json() as Promise<TRes>;
 }
 
-export async function analyzeGapsSimple(req: SimpleGapRequest): Promise<SimpleGapResponse> {
-  const res = await fetch(`${API_BASE}/simple-analyze-gaps`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req),
-  });
+export const sendChat = (req: ChatRequest) => postJson<ChatRequest, ChatResponse>("/chat", req);
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`simple-analyze-gaps failed (${res.status}): ${body}`);
-  }
+export const segmentConcepts = (req: SegmentRequest) =>
+  postJson<SegmentRequest, SegmentResponse>("/simple-segment-concepts", req);
 
-  return res.json();
-}
+export const verifyGraph = (req: VerifyGraphRequest) =>
+  postJson<VerifyGraphRequest, VerifyGraphResponse>("/simple-evaluate", req);
 
-export async function segmentConcepts(req: SegmentRequest): Promise<SegmentResponse> {
-  const res = await fetch(`${API_BASE}/simple-segment-concepts`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req),
-  });
+export const analyzeGapsSimple = (req: SimpleGapRequest) =>
+  postJson<SimpleGapRequest, SimpleGapResponse>("/simple-analyze-gaps", req);
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`simple-segment-concepts failed (${res.status}): ${body}`);
-  }
-
-  return res.json();
-}
-
-export async function sendChat(req: ChatRequest): Promise<ChatResponse> {
-  const res = await fetch(`${API_BASE}/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req),
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`chat failed (${res.status}): ${body}`);
-  }
-
-  return res.json();
-}
-
-export async function checkResolveNodes(req: ResolveNodesRequest): Promise<ResolveNodesResponse> {
-  const res = await fetch(`${API_BASE}/simple-resolve-nodes`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req),
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`simple-resolve-nodes failed (${res.status}): ${body}`);
-  }
-
-  return res.json();
-}
+export const checkResolveNodes = (req: ResolveNodesRequest) =>
+  postJson<ResolveNodesRequest, ResolveNodesResponse>("/simple-resolve-nodes", req);
