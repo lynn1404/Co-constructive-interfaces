@@ -1,13 +1,18 @@
-import "./App.css";
-import { SourcePanel } from "./components/SourcePanel";
-import type { HighlightMode } from "./components/SourcePanel";
-import { Canvas } from "./components/Canvas";
-import { ConceptDrawer } from "./components/ConceptDrawer";
 import { useRef, useState } from "react";
 import type { Edge } from "@xyflow/react";
+
+import { Canvas } from "./components/Canvas";
+import { ConceptDrawer } from "./components/ConceptDrawer";
+import { SourcePanel } from "./components/SourcePanel";
+import type { HighlightMode } from "./components/SourcePanel";
 import type { TextHighlight } from "./types";
 import type { GraphSnapshotEntry } from "./utils/buildGraphSnapshot";
 import { shuffle } from "./utils/shuffle";
+
+import "./App.css";
+
+// Case- and whitespace-insensitive key, so "Stress " and "stress" count as the same text.
+const textKey = (text: string) => text.trim().toLowerCase();
 
 export default function App() {
   const [submittedText, setSubmittedText] = useState<string | null>(null);
@@ -34,19 +39,19 @@ export default function App() {
 
     setHighlights((prev) => prev.filter((h) => h.id !== nodeId));
     setReadMarks((prev) =>
-      prev.filter((r) => r.text.trim().toLowerCase() !== deletedHighlight.text.trim().toLowerCase()),
+      prev.filter((r) => textKey(r.text) !== textKey(deletedHighlight.text)),
     );
   }
 
   function handleEdgeLabelRemoved(labelText: string) {
-    // removes edge label
+    // ungreys text when an edge label is removed
     setReadMarks((prev) =>
-      prev.filter((r) => r.text.trim().toLowerCase() !== labelText.trim().toLowerCase()),
+      prev.filter((r) => textKey(r.text) !== textKey(labelText))
     );
   }
 
   function handleReset() {
-    // resets the canvas
+    // clear the text, the map and all marks, and return to the chat
     setSubmittedText(null);
     setEdges([]);
     setHighlights([]);
