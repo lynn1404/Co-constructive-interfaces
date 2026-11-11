@@ -4,8 +4,7 @@ import type { Edge } from "@xyflow/react";
 import { Canvas } from "./components/Canvas";
 import { ConceptDrawer } from "./components/ConceptDrawer";
 import { SourcePanel } from "./components/SourcePanel";
-import type { HighlightMode } from "./components/SourcePanel";
-import type { TextHighlight } from "./types";
+import type { TextHighlight, HighlightMode } from "./types";
 import type { GraphSnapshotEntry } from "./utils/buildGraphSnapshot";
 import { shuffle } from "./utils/shuffle";
 

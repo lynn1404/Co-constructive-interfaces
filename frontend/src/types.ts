@@ -1,6 +1,8 @@
 // Shapes of the data exchanged with the backend (mirrors backend/app/schemas/api_payloads.py).
 import type { GraphSnapshotEntry } from "./utils/buildGraphSnapshot";
 
+export type HighlightMode = "concepts" | "phrases";
+
 export interface TextHighlight {
   id: string;
   start: number;
