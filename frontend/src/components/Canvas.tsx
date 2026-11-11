@@ -1,39 +1,51 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ReactFlow,
-  ReactFlowProvider,
-  useReactFlow,
-  useNodesState,
-  applyEdgeChanges,
   Background,
   Controls,
-  type Node,
-  type Edge,
+  MarkerType,
+  ReactFlow,
+  ReactFlowProvider,
+  SelectionMode,
+  applyEdgeChanges,
+  useNodesState,
+  useReactFlow,
   type Connection,
+  type Edge,
   type EdgeChange,
   type EdgeProps,
+  type Node,
   type NodeProps,
   type OnConnectStart,
-  MarkerType,
   type OnSelectionChangeParams,
-  SelectionMode,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import "./Canvas.css";
-import type { StudentVerificationEntry, TextHighlight } from "../types";
-import { FloatingNode } from "./FloatingNode";
-import { FloatingEdge } from "./FloatingEdge";
-import { FloatingConnectionLine } from "./FloatingConnectionLine";
-import { buildGraphSnapshot, type GraphSnapshotEntry } from "../utils/buildGraphSnapshot";
-import { MergeDialog } from "./MergeDialog";
-import { DeleteNodeDialog } from "./DeleteNodeDialog";
-import { VerificationPanel, type PanelEntry } from "./VerificationPanel";
-import { SimilarNodesDialog } from "./SimilarNodesDialog";
-import { GapAnalysisDialog } from "./GapAnalysisDialog";
-import { EdgeLinkPicker } from "./EdgeLinkPicker";
-import { verifyGraph, checkResolveNodes, analyzeGapsSimple } from "../api";
-import type { SimilarNodeGroup, SimpleGapItem } from "../types";
+
+import { analyzeGapsSimple, checkResolveNodes, verifyGraph } from "../api";
+import { useRequest } from "../hooks/useRequest";
+import type { SimilarNodeGroup, SimpleGapItem, StudentVerificationEntry, TextHighlight } from "../types";
+import { buildGraphSnapshot } from "../utils/buildGraphSnapshot";
+import {
+  applyVerification,
+  buildPanelEntries,
+  edgeData,
+  makeConceptNode,
+  mergeNodes,
+  nodeLabel,
+  sameIds,
+} from "../utils/canvasGraph";
+import { debugLog } from "../utils/debug";
+import { CanvasToolbar } from "./CanvasToolbar";
 import { CONCEPT_DRAG_MIME } from "./ConceptDrawer";
+import { DeleteNodeDialog } from "./DeleteNodeDialog";
+import { EdgeLinkPicker } from "./EdgeLinkPicker";
+import { FloatingConnectionLine } from "./FloatingConnectionLine";
+import { FloatingEdge } from "./FloatingEdge";
+import { FloatingNode } from "./FloatingNode";
+import { GapAnalysisDialog } from "./GapAnalysisDialog";
+import { MergeDialog } from "./MergeDialog";
+import { SimilarNodesDialog } from "./SimilarNodesDialog";
+import { VerificationPanel } from "./VerificationPanel";
+import "./Canvas.css";
 
 interface PendingConnection {
   source: string;
@@ -42,13 +54,9 @@ interface PendingConnection {
   targetHandle: string | null | undefined;
 }
 
-function sameIds(a: string[], b: string[]): boolean {
-  return a.length === b.length && a.every((id, i) => id === b[i]);
-}
-
-function normTriplet(t: { subject: string; predicate: string; object: string }): string {
-  const norm = (v: string) => v.trim().replace(/\s+/g, " ").toLowerCase();
-  return [t.subject, t.predicate, t.object].map(norm).join("\u0000");
+/** Only one edge at a time may wait for a label: clear the flag on all existing edges. */
+function clearPending(edges: Edge[]): Edge[] {
+  return edges.map((e) => ({ ...e, data: { ...e.data, isPending: false } }));
 }
 
 interface Props {
@@ -58,9 +66,7 @@ interface Props {
   setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
   onNodeDeleted: (nodeId: string) => void;
   onEdgeLabelRemoved: (labelText: string) => void;
-  onGraphSnapshotChange: (snapshot: GraphSnapshotEntry[]) => void;
   sourceText: string;
-  graphSnapshot: GraphSnapshotEntry[];
   onNodeSelected: (highlightIds: string[]) => void;
   editingHighlightRef: React.RefObject<((text: string) => void) | null>;
   drawerMode: boolean;
@@ -68,41 +74,12 @@ interface Props {
   restrictedLinks: boolean;
 }
 
-export function Canvas({
-  highlights,
-  resetKey,
-  edges,
-  setEdges,
-  onNodeDeleted,
-  onEdgeLabelRemoved,
-  onGraphSnapshotChange,
-  sourceText,
-  graphSnapshot,
-  onNodeSelected,
-  editingHighlightRef,
-  drawerMode,
-  onConceptPlaced,
-  restrictedLinks,
-}: Props) {
+export function Canvas(props: Props) {
+  // useReactFlow() only works inside a ReactFlowProvider, hence the inner component
   return (
     <div className="canvas">
       <ReactFlowProvider>
-        <CanvasInner
-          highlights={highlights}
-          resetKey={resetKey}
-          edges={edges}
-          setEdges={setEdges}
-          onNodeDeleted={onNodeDeleted}
-          onEdgeLabelRemoved={onEdgeLabelRemoved}
-          onGraphSnapshotChange={onGraphSnapshotChange}
-          sourceText={sourceText}
-          graphSnapshot={graphSnapshot}
-          onNodeSelected={onNodeSelected}
-          editingHighlightRef={editingHighlightRef}
-          drawerMode={drawerMode}
-          onConceptPlaced={onConceptPlaced}
-          restrictedLinks={restrictedLinks}
-        />
+        <CanvasInner {...props} />
       </ReactFlowProvider>
     </div>
   );
@@ -115,9 +92,7 @@ function CanvasInner({
   setEdges,
   onNodeDeleted,
   onEdgeLabelRemoved,
-  onGraphSnapshotChange,
   sourceText,
-  graphSnapshot,
   onNodeSelected,
   editingHighlightRef,
   drawerMode,
@@ -126,29 +101,27 @@ function CanvasInner({
 }: Props) {
   const { fitView, screenToFlowPosition } = useReactFlow();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
-  const graphSnapshotRef = useRef(graphSnapshot);
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [deleteConfirmNodeId, setDeleteConfirmNodeId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [focusEdgeId, setFocusEdgeId] = useState<string | null>(null);
-  const [verifying, setVerifying] = useState(false);
   const [verifySummary, setVerifySummary] = useState<Record<string, number> | null>(null);
-  const [verifyError, setVerifyError] = useState<string | null>(null);
-  const [resolvingNodes, setResolvingNodes] = useState(false);
   const [similarGroups, setSimilarGroups] = useState<SimilarNodeGroup[] | null>(null);
-  const [resolveError, setResolveError] = useState<string | null>(null);
-  const [analyzingGaps, setAnalyzingGaps] = useState(false);
   const [gapResult, setGapResult] = useState<{ gaps: SimpleGapItem[]; overall: string } | null>(null);
-  const [gapError, setGapError] = useState<string | null>(null);
-  const pendingConnectionDataRef = useRef<PendingConnection | null>(null);
   const [pendingConnection, setPendingConnection] = useState<
     (PendingConnection & { anchor: { x: number; y: number } }) | null
   >(null);
+  const verifyRequest = useRequest("Verification failed");
+  const similarRequest = useRequest("Similarity check failed");
+  const gapsRequest = useRequest("Gap analysis failed");
+  const pendingConnectionDataRef = useRef<PendingConnection | null>(null);
+  const connectStartNodeId = useRef<string | null>(null);
+  const lastSelectionRef = useRef<string[]>([]);
+  const lastSelectedNodeIdsRef = useRef<string[]>([]);
+  const prevHighlightsLenRef = useRef(highlights.length);
 
-  useEffect(() => {
-    graphSnapshotRef.current = graphSnapshot;
-  }, [graphSnapshot]);
+  // ---- custom node and edge types (memoised: React Flow re-mounts them if these objects change)
 
   const registerEditingHandler = useCallback(
     (fn: ((text: string) => void) | null) => {
@@ -157,27 +130,22 @@ function CanvasInner({
     [editingHighlightRef],
   );
 
-  function clearEdgeVerification(edgeIds: Set<string>) {
-    if (edgeIds.size === 0) return;
-    setEdges((eds) =>
-      eds.map((e) => (edgeIds.has(e.id) ? { ...e, data: { ...e.data, verification: null } } : e)),
-    );
-  }
-
+  // renaming a node changes the triplets of its edges, so their old verdicts no longer apply
   const handleNodeLabelChanged = useCallback(
     (nodeId: string) => {
-      const touched = new Set(
-        edges.filter((e) => e.source === nodeId || e.target === nodeId).map((e) => e.id),
+      setEdges((eds) =>
+        eds.map((e) =>
+          e.source === nodeId || e.target === nodeId ? { ...e, data: { ...e.data, verification: null } } : e,
+        ),
       );
-      clearEdgeVerification(touched);
     },
-    [edges],
+    [setEdges],
   );
 
   const deleteEdge = useCallback(
     (edgeId: string) => {
       const edge = edges.find((e) => e.id === edgeId);
-      const label = (edge?.data as { label?: string } | undefined)?.label;
+      const label = edge && edgeData(edge).label;
       if (label) onEdgeLabelRemoved(label);
       setEdges((eds) => eds.filter((e) => e.id !== edgeId));
     },
@@ -217,13 +185,8 @@ function CanvasInner({
     }),
     [registerEditingHandler, handleNodeLabelChanged],
   );
-  const connectStartNodeId = useRef<string | null>(null);
-  const lastSelectionRef = useRef<string[]>([]);
-  const lastSelectedNodeIdsRef = useRef<string[]>([]);
 
-  const handleConnectStart: OnConnectStart = (_event, params) => {
-    connectStartNodeId.current = params.nodeId;
-  };
+  // ---- syncing nodes with the highlights coming from the source panel
 
   useEffect(() => {
     setNodes([]);
@@ -232,7 +195,6 @@ function CanvasInner({
 
   // a fresh text highlight (i.e. not editing an existing label) means the user is
   // marking something new — drop any current node selection so it doesn't linger
-  const prevHighlightsLenRef = useRef(highlights.length);
   useEffect(() => {
     if (highlights.length > prevHighlightsLenRef.current) {
       setSelectedNodeIds([]);
@@ -241,62 +203,40 @@ function CanvasInner({
     prevHighlightsLenRef.current = highlights.length;
   }, [highlights, setNodes]);
 
+  // each new highlight becomes a node, laid out on a 4-column grid
   useEffect(() => {
     if (drawerMode) return; // in drawer mode, nodes are only created by dragging from the drawer
 
     setNodes((currentNodes) => {
       const seenText = new Set(currentNodes.map((n) => (n.data.label as string).trim().toLowerCase()));
-
       const newNodes: Node[] = [];
       highlights.forEach((h) => {
         const key = h.text.trim().toLowerCase();
         if (seenText.has(key)) return;
         seenText.add(key);
-
-        newNodes.push({
-          id: h.id,
-          position: {
-            x: ((currentNodes.length + newNodes.length) % 4) * 200,
-            y: Math.floor((currentNodes.length + newNodes.length) / 4) * 120,
-          },
-          type: "floating",
-          data: {
-            label: h.text,
-            aliases: [],
-            sourceHighlightIds: [h.id],
-            isNew: true,
+        const index = currentNodes.length + newNodes.length;
+        newNodes.push(
+          makeConceptNode(h.id, { x: (index % 4) * 200, y: Math.floor(index / 4) * 120 }, h.text, [h.id], {
             autoEdit: true,
             wordLimitExceeded: h.wordLimitExceeded ?? false,
-          },
-        });
+          }),
+        );
       });
-
       return newNodes.length === 0 ? currentNodes : [...currentNodes, ...newNodes];
     });
   }, [highlights, setNodes, drawerMode]);
 
-  function handleCreateNode() {
-    const id = crypto.randomUUID();
-    const position = screenToFlowPosition({
-      x: window.innerWidth / 2,
-      y: window.innerHeight / 2,
-    });
+  useEffect(() => {
+    fitView({ duration: 300 });
+  }, [nodes.length, fitView]);
 
+  // ---- creating and deleting nodes
+
+  function handleCreateNode() {
+    const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
     setNodes((currentNodes) => [
       ...currentNodes,
-      {
-        id,
-        position,
-        type: "floating",
-        data: {
-          label: "New concept",
-          aliases: [],
-          sourceHighlightIds: [],
-          isNew: true,
-          autoEdit: true,
-          color: "white",
-        },
-      },
+      makeConceptNode(crypto.randomUUID(), position, "New concept", [], { autoEdit: true, color: "white" }),
     ]);
   }
 
@@ -309,52 +249,20 @@ function CanvasInner({
   function handleDrop(event: React.DragEvent) {
     if (!drawerMode) return;
     event.preventDefault();
-    const highlightId = event.dataTransfer.getData(CONCEPT_DRAG_MIME);
-    if (!highlightId) return;
-
-    const highlight = highlights.find((h) => h.id === highlightId);
+    const highlight = highlights.find((h) => h.id === event.dataTransfer.getData(CONCEPT_DRAG_MIME));
     if (!highlight) return;
 
     const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
-
-    setNodes((currentNodes) => {
-      if (currentNodes.some((n) => n.id === highlight.id)) return currentNodes;
-      return [
-        ...currentNodes,
-        {
-          id: highlight.id,
-          position,
-          type: "floating",
-          data: {
-            label: highlight.text,
-            aliases: [],
-            sourceHighlightIds: [highlight.id],
-            isNew: true,
-          },
-        },
-      ];
-    });
-
+    setNodes((currentNodes) =>
+      currentNodes.some((n) => n.id === highlight.id)
+        ? currentNodes
+        : [...currentNodes, makeConceptNode(highlight.id, position, highlight.text, [highlight.id])],
+    );
     onConceptPlaced(highlight.id);
-  }
-
-  function handleEdgesChange(changes: EdgeChange[]) {
-    const removedIds = changes.filter((c) => c.type === "remove").map((c) => c.id);
-
-    if (removedIds.length > 0) {
-      const removedEdges = edges.filter((e) => removedIds.includes(e.id));
-      removedEdges.forEach((e) => {
-        const label = (e.data as { label?: string } | undefined)?.label;
-        if (label) onEdgeLabelRemoved(label);
-      });
-    }
-
-    setEdges((eds) => applyEdgeChanges(changes, eds));
   }
 
   function handleNodesDelete(deletedNodes: Node[]) {
     const deletedIds = new Set(deletedNodes.map((n) => n.id));
-
     const cascadedEdges = edges.filter((e) => deletedIds.has(e.source) || deletedIds.has(e.target));
 
     setEdges((eds) => eds.filter((e) => !deletedIds.has(e.source) && !deletedIds.has(e.target)));
@@ -363,20 +271,74 @@ function CanvasInner({
       const mergedIds = (n.data.sourceHighlightIds as string[] | undefined) ?? [n.id];
       mergedIds.forEach((id) => onNodeDeleted(id));
     });
-
     cascadedEdges.forEach((e) => {
-      const label = (e.data as { label?: string } | undefined)?.label;
+      const { label } = edgeData(e);
       if (label) onEdgeLabelRemoved(label);
     });
   }
 
   function confirmDeleteNode() {
-    if (!deleteConfirmNodeId) return;
     const node = nodes.find((n) => n.id === deleteConfirmNodeId);
     setDeleteConfirmNodeId(null);
     if (!node) return;
     setNodes((currentNodes) => currentNodes.filter((n) => n.id !== node.id));
     handleNodesDelete([node]);
+  }
+
+  function handleMerge(nodeIds: string[], mainLabel: string) {
+    const merged = mergeNodes(nodes, edges, nodeIds, mainLabel);
+    if (!merged) return;
+    setNodes(merged.nodes);
+    setEdges(merged.edges);
+    setSelectedNodeIds([]);
+  }
+
+  // ---- creating edges
+
+  function handleEdgesChange(changes: EdgeChange[]) {
+    const removedIds = changes.filter((c) => c.type === "remove").map((c) => c.id);
+    edges
+      .filter((e) => removedIds.includes(e.id))
+      .forEach((e) => {
+        const { label } = edgeData(e);
+        if (label) onEdgeLabelRemoved(label);
+      });
+    setEdges((eds) => applyEdgeChanges(changes, eds));
+  }
+
+  // every edge is a "floating" edge with an arrowhead; while pending, highlighting text in the
+  // source panel calls onSubmitLabel to set its label
+  function makeEdge(
+    source: string,
+    target: string,
+    sourceHandle: string | null | undefined,
+    targetHandle: string | null | undefined,
+    label: string,
+    isPending: boolean,
+  ): Edge {
+    const id = crypto.randomUUID();
+    return {
+      id,
+      source,
+      target,
+      sourceHandle,
+      targetHandle,
+      type: "floating",
+      markerEnd: { type: MarkerType.ArrowClosed, color: "#9ca3af" },
+      data: {
+        label,
+        isPending,
+        verification: null,
+        onSubmitLabel: (newLabel: string) =>
+          setEdges((eds) =>
+            eds.map((e) =>
+              e.id === id
+                ? { ...e, data: { ...e.data, label: newLabel, isPending: false, verification: null } }
+                : e,
+            ),
+          ),
+      },
+    };
   }
 
   function createDraftEdge(
@@ -385,67 +347,15 @@ function CanvasInner({
     sourceHandle: string | null | undefined,
     targetHandle: string | null | undefined,
   ) {
-    const newEdgeId = crypto.randomUUID();
-    const newEdge: Edge = {
-      id: newEdgeId,
-      source,
-      target,
-      sourceHandle,
-      targetHandle,
-      type: "floating",
-      markerEnd: { type: MarkerType.ArrowClosed, color: "#9ca3af" },
-      data: {
-        label: "",
-        isPending: true,
-        verification: null,
-        onSubmitLabel: (label: string) => {
-          setEdges((eds) =>
-            eds.map((e) =>
-              e.id === newEdgeId
-                ? { ...e, data: { ...e.data, label, isPending: false, verification: null } }
-                : e,
-            ),
-          );
-        },
-      },
-    };
-
-    setEdges((eds) => [...eds.map((e) => ({ ...e, data: { ...e.data, isPending: false } })), newEdge]);
+    const edge = makeEdge(source, target, sourceHandle, targetHandle, "", true);
+    setEdges((eds) => [...clearPending(eds), edge]);
   }
 
   function createLinkedEdge(connection: PendingConnection, link: string) {
-    setEdges((eds) => {
-      const cleared = eds.map((e) => ({ ...e, data: { ...e.data, isPending: false } }));
-      const newEdges = connection.targets.map((target) => {
-        const newEdgeId = crypto.randomUUID();
-        const newEdge: Edge = {
-          id: newEdgeId,
-          source: connection.source,
-          target,
-          sourceHandle: connection.sourceHandle,
-          targetHandle: connection.targetHandle,
-          type: "floating",
-          markerEnd: { type: MarkerType.ArrowClosed, color: "#9ca3af" },
-          data: {
-            label: link,
-            isPending: false,
-            verification: null,
-            onSubmitLabel: (label: string) => {
-              setEdges((eds2) =>
-                eds2.map((e) =>
-                  e.id === newEdgeId
-                    ? { ...e, data: { ...e.data, label, isPending: false, verification: null } }
-                    : e,
-                ),
-              );
-            },
-          },
-        };
-        return newEdge;
-      });
-
-      return [...cleared, ...newEdges];
-    });
+    const newEdges = connection.targets.map((target) =>
+      makeEdge(connection.source, target, connection.sourceHandle, connection.targetHandle, link, false),
+    );
+    setEdges((eds) => [...clearPending(eds), ...newEdges]);
   }
 
   // when the drag lands on a node that's part of a multi-selection, fan the edge out to
@@ -456,6 +366,10 @@ function CanvasInner({
     }
     return [actualTarget];
   }
+
+  const handleConnectStart: OnConnectStart = (_event, params) => {
+    connectStartNodeId.current = params.nodeId;
+  };
 
   function handleConnect(connection: Connection) {
     const startId = connectStartNodeId.current;
@@ -491,160 +405,72 @@ function CanvasInner({
     const point = "changedTouches" in event ? event.changedTouches[0] : event;
     setPendingConnection({ ...data, anchor: { x: point.clientX, y: point.clientY } });
   }
+
+  // ---- selection
+
   function handleSelectionChange({ nodes: selectedNodes }: OnSelectionChangeParams) {
     const ids = selectedNodes.map((n) => n.id);
-    const prevSelectedIds = lastSelectedNodeIdsRef.current;
-    if (!sameIds(ids, prevSelectedIds)) {
+    if (!sameIds(ids, lastSelectedNodeIdsRef.current)) {
       lastSelectedNodeIdsRef.current = ids;
       setSelectedNodeIds(ids);
     }
 
-    // spotlight logic stays for the single-select case
+    // a single selected node spotlights the text it came from
     const nextIds =
       selectedNodes.length === 1
         ? ((selectedNodes[0].data.sourceHighlightIds as string[] | undefined) ?? [selectedNodes[0].id])
         : [];
-
-    const prevIds = lastSelectionRef.current;
-    if (!sameIds(nextIds, prevIds)) {
+    if (!sameIds(nextIds, lastSelectionRef.current)) {
       lastSelectionRef.current = nextIds;
       onNodeSelected(nextIds);
     }
   }
-  useEffect(() => {
-    fitView({ duration: 300 });
-  }, [nodes.length, fitView]);
 
-  useEffect(() => {
-    onGraphSnapshotChange(buildGraphSnapshot(nodes, edges));
-  }, [nodes, edges, onGraphSnapshotChange]);
-
-  function handleMerge(nodeIds: string[], mainLabel: string) {
-    const nodesToMerge = nodes.filter((n) => nodeIds.includes(n.id));
-    if (nodesToMerge.length < 2) return;
-
-    // keep the first selected node as the "surviving" node, give it a fresh id
-    // isn't necessary — reuse the first node's id so any external refs (if ever) stay stable
-    const survivingId = nodesToMerge[0].id;
-
-    // union of all labels (minus the chosen main one) becomes aliases,
-    // plus any aliases the merged nodes already had
-    const allLabels = nodesToMerge.map((n) => n.data.label as string);
-    const allExistingAliases = nodesToMerge.flatMap((n) => (n.data.aliases as string[] | undefined) ?? []);
-    const aliasSet = new Set([...allLabels, ...allExistingAliases]);
-    aliasSet.delete(mainLabel);
-
-    // union of source highlight ids, so clicking the merged node spotlights all original text
-    const mergedHighlightIds = nodesToMerge.flatMap(
-      (n) => (n.data.sourceHighlightIds as string[] | undefined) ?? [n.id],
-    );
-
-    const survivingNode = nodesToMerge[0];
-    const mergedIds = new Set(nodeIds);
-
-    setNodes((currentNodes) => [
-      ...currentNodes.filter((n) => !mergedIds.has(n.id)),
-      {
-        ...survivingNode,
-        id: survivingId,
-        data: {
-          label: mainLabel,
-          aliases: Array.from(aliasSet),
-          sourceHighlightIds: mergedHighlightIds,
-        },
-      },
-    ]);
-
-    // union of edges: redirect any edge pointing at a merged node to point at survivingId instead,
-    // and drop verification on any edge whose subject/object text may have changed
-    const touchedEdgeIds = new Set(
-      edges.filter((e) => mergedIds.has(e.source) || mergedIds.has(e.target)).map((e) => e.id),
-    );
-    setEdges((currentEdges) =>
-      currentEdges.map((e) => ({
-        ...e,
-        source: mergedIds.has(e.source) ? survivingId : e.source,
-        target: mergedIds.has(e.target) ? survivingId : e.target,
-        data: touchedEdgeIds.has(e.id) ? { ...e.data, verification: null } : e.data,
-      })),
-    );
-
-    setSelectedNodeIds([]);
-  }
+  // ---- backend checks
 
   const hasFullTriplet = edges.some((e) => {
-    const d = e.data as { label?: string; isPending?: boolean } | undefined;
-    return !!d?.label && !d?.isPending;
+    const { label, isPending } = edgeData(e);
+    return !!label && !isPending;
   });
-
-  const panelEntries: PanelEntry[] = useMemo(
-    () =>
-      edges
-        .map((e) => {
-          const d = e.data as
-            | { label?: string; isPending?: boolean; verification?: StudentVerificationEntry | null }
-            | undefined;
-          if (!d?.label || d.isPending) return null;
-          const sourceLabel = nodes.find((n) => n.id === e.source)?.data.label as string | undefined;
-          const targetLabel = nodes.find((n) => n.id === e.target)?.data.label as string | undefined;
-          if (!sourceLabel || !targetLabel) return null;
-          return {
-            edgeId: e.id,
-            subject: sourceLabel,
-            predicate: d.label,
-            object: targetLabel,
-            verification: d.verification ?? null,
-          } satisfies PanelEntry;
-        })
-        .filter((e): e is PanelEntry => e !== null),
-    [edges, nodes],
-  );
-
+  const panelEntries = useMemo(() => buildPanelEntries(nodes, edges), [nodes, edges]);
   const allVerified = panelEntries.length > 0 && panelEntries.every((e) => e.verification !== null);
 
   async function handleVerifyGraph() {
-    setVerifying(true);
-    setVerifyError(null);
-    try {
-      const snapshot = buildGraphSnapshot(nodes, edges);
-      const response = await verifyGraph({ source_text: sourceText, existing_graph: snapshot });
-      console.log("verify_graph response:", response);
-
-      const byTriplet = new Map<string, StudentVerificationEntry>();
-      response.student.forEach((entry) => byTriplet.set(normTriplet(entry.triplet), entry));
-
-      setEdges((eds) =>
-        eds.map((e) => {
-          const d = e.data as { label?: string } | undefined;
-          const sourceLabel = nodes.find((n) => n.id === e.source)?.data.label as string | undefined;
-          const targetLabel = nodes.find((n) => n.id === e.target)?.data.label as string | undefined;
-          if (!d?.label || !sourceLabel || !targetLabel) return e;
-          const match = byTriplet.get(
-            normTriplet({ subject: sourceLabel, predicate: d.label, object: targetLabel }),
-          );
-          if (!match) return e;
-          return { ...e, data: { ...e.data, verification: match } };
-        }),
-      );
-
-      setVerifySummary(response.summary);
-      setFocusEdgeId(null);
-      setPanelOpen(true);
-    } catch (err) {
-      console.error(err);
-      setVerifyError(err instanceof Error ? err.message : "Verification failed");
-    } finally {
-      setVerifying(false);
-    }
+    const response = await verifyRequest.run(() =>
+      verifyGraph({ source_text: sourceText, existing_graph: buildGraphSnapshot(nodes, edges) }),
+    );
+    if (!response) return;
+    debugLog("verify_graph response:", response);
+    setEdges((eds) => applyVerification(nodes, eds, response.student));
+    setVerifySummary(response.summary);
+    setFocusEdgeId(null);
+    setPanelOpen(true);
   }
 
+  async function handleAnalyzeGaps() {
+    const response = await gapsRequest.run(() =>
+      analyzeGapsSimple({ source_text: sourceText, existing_graph: buildGraphSnapshot(nodes, edges) }),
+    );
+    if (!response) return;
+    debugLog("simple_analyze_gaps response:", response);
+    setGapResult({ gaps: response.gaps, overall: response.overall });
+  }
+
+  async function handleCheckSimilarNodes() {
+    const response = await similarRequest.run(() =>
+      checkResolveNodes({ existing_graph: buildGraphSnapshot(nodes, edges) }),
+    );
+    if (!response) return;
+    debugLog("check_resolve_nodes response:", response);
+    setSimilarGroups(response.groups);
+  }
+
+  // the student overrides a "worth another check" verdict and marks the edge correct
   function handleConfirmCorrect(edgeId: string) {
     setEdges((eds) =>
       eds.map((e) => {
-        if (e.id !== edgeId) return e;
-        const d = e.data as { verification?: StudentVerificationEntry | null } | undefined;
-        const triplet = d?.verification?.triplet;
-        if (!triplet) return e;
+        const triplet = edgeData(e).verification?.triplet;
+        if (e.id !== edgeId || !triplet) return e;
         const verification: StudentVerificationEntry = {
           triplet,
           state: "verified",
@@ -657,47 +483,14 @@ function CanvasInner({
         return { ...e, data: { ...e.data, verification } };
       }),
     );
-    setVerifySummary((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        verified: (prev.verified ?? 0) + 1,
-        flagged: Math.max((prev.flagged ?? 0) - 1, 0),
-      };
-    });
+    setVerifySummary((prev) =>
+      prev
+        ? { ...prev, verified: (prev.verified ?? 0) + 1, flagged: Math.max((prev.flagged ?? 0) - 1, 0) }
+        : prev,
+    );
   }
 
-  async function handleAnalyzeGaps() {
-    setAnalyzingGaps(true);
-    setGapError(null);
-    try {
-      const snapshot = buildGraphSnapshot(nodes, edges);
-      const response = await analyzeGapsSimple({ source_text: sourceText, existing_graph: snapshot });
-      console.log("simple_analyze_gaps response:", response);
-      setGapResult({ gaps: response.gaps, overall: response.overall });
-    } catch (err) {
-      console.error(err);
-      setGapError(err instanceof Error ? err.message : "Gap analysis failed");
-    } finally {
-      setAnalyzingGaps(false);
-    }
-  }
-
-  async function handleCheckSimilarNodes() {
-    setResolvingNodes(true);
-    setResolveError(null);
-    try {
-      const snapshot = buildGraphSnapshot(nodes, edges);
-      const response = await checkResolveNodes({existing_graph: snapshot });
-      console.log("check_resolve_nodes response:", response);
-      setSimilarGroups(response.groups);
-    } catch (err) {
-      console.error(err);
-      setResolveError(err instanceof Error ? err.message : "Similarity check failed");
-    } finally {
-      setResolvingNodes(false);
-    }
-  }
+  const nodeToDelete = nodes.find((n) => n.id === deleteConfirmNodeId);
 
   return (
     <>
@@ -723,68 +516,22 @@ function CanvasInner({
         </ReactFlow>
       </div>
 
-      <div className="canvas-toolbar-topleft">
-        <button className="create-node-btn" onClick={handleCreateNode} title="Add a new node to the canvas">
-          + Add Node
-        </button>
-
-        {selectedNodeIds.length >= 2 && (
-          <button className="merge-trigger-btn" onClick={() => setShowMergeDialog(true)}>
-            Merge {selectedNodeIds.length} nodes
-          </button>
-        )}
-      </div>
-
-      <div className="canvas-toolbar">
-        <div className="canvas-toolbar__row">
-          <button
-            className="verify-graph-btn"
-            onClick={handleVerifyGraph}
-            disabled={!hasFullTriplet || verifying || allVerified}
-            title={
-              !hasFullTriplet
-                ? "Add at least one labeled edge to verify"
-                : allVerified
-                  ? "All edges verified — edit the graph to re-run"
-                  : "Verify all triplets in the graph"
-            }
-          >
-            {verifying ? "Verifying…" : "Verify Graph"}
-          </button>
-
-          <button
-            className="check-similar-nodes-btn"
-            onClick={handleCheckSimilarNodes}
-            disabled={nodes.length < 2 || resolvingNodes}
-            title="Suggest nodes that might refer to the same concept"
-          >
-            {resolvingNodes ? "Checking…" : "Check similar nodes"}
-          </button>
-
-          <button
-            className="analyze-gaps-btn"
-            onClick={handleAnalyzeGaps}
-            disabled={!hasFullTriplet || analyzingGaps}
-            title="Find parts of the source text your map doesn't cover yet"
-          >
-            {analyzingGaps ? "Analyzing…" : "Analyze Gaps"}
-          </button>
-        </div>
-
-        <div className="canvas-toolbar__errors">
-          {verifyError && <div className="verify-graph-error">{verifyError}</div>}
-          {resolveError && <div className="check-similar-nodes-error">{resolveError}</div>}
-          {gapError && <div className="analyze-gaps-error">{gapError}</div>}
-        </div>
-      </div>
-
-      <button
-        className={`verification-toggle-chip ${panelOpen ? "verification-toggle-chip--active" : ""}`}
-        onClick={() => setPanelOpen((o) => !o)}
-        title={panelOpen ? "Hide verification panel" : "Show verification panel"}
-      >
-        🗒 Verification
-      </button>
+      <CanvasToolbar
+        nodeCount={nodes.length}
+        selectedCount={selectedNodeIds.length}
+        hasFullTriplet={hasFullTriplet}
+        allVerified={allVerified}
+        verify={verifyRequest}
+        similar={similarRequest}
+        gaps={gapsRequest}
+        panelOpen={panelOpen}
+        onCreateNode={handleCreateNode}
+        onMergeSelected={() => setShowMergeDialog(true)}
+        onVerify={handleVerifyGraph}
+        onCheckSimilar={handleCheckSimilarNodes}
+        onAnalyzeGaps={handleAnalyzeGaps}
+        onTogglePanel={() => setPanelOpen((open) => !open)}
+      />
 
       {showMergeDialog && (
         <MergeDialog
@@ -797,22 +544,16 @@ function CanvasInner({
         />
       )}
 
-      {deleteConfirmNodeId &&
-        (() => {
-          const node = nodes.find((n) => n.id === deleteConfirmNodeId);
-          if (!node) return null;
-          const relationCount = edges.filter(
-            (e) => e.source === deleteConfirmNodeId || e.target === deleteConfirmNodeId,
-          ).length;
-          return (
-            <DeleteNodeDialog
-              nodeLabel={node.data.label as string}
-              relationCount={relationCount}
-              onCancel={() => setDeleteConfirmNodeId(null)}
-              onConfirm={confirmDeleteNode}
-            />
-          );
-        })()}
+      {nodeToDelete && (
+        <DeleteNodeDialog
+          nodeLabel={nodeToDelete.data.label as string}
+          relationCount={
+            edges.filter((e) => e.source === nodeToDelete.id || e.target === nodeToDelete.id).length
+          }
+          onCancel={() => setDeleteConfirmNodeId(null)}
+          onConfirm={confirmDeleteNode}
+        />
+      )}
 
       {panelOpen && (
         <VerificationPanel
@@ -820,7 +561,7 @@ function CanvasInner({
           focusEdgeId={focusEdgeId}
           summary={verifySummary}
           onClose={() => setPanelOpen(false)}
-          onEntryClick={(edgeId) => setFocusEdgeId(edgeId)}
+          onEntryClick={setFocusEdgeId}
           onConfirmCorrect={handleConfirmCorrect}
         />
       )}
@@ -840,15 +581,11 @@ function CanvasInner({
       {pendingConnection && (
         <EdgeLinkPicker
           anchor={pendingConnection.anchor}
-          sourceLabel={
-            (nodes.find((n) => n.id === pendingConnection.source)?.data.label as string | undefined) ??
-            "source node"
-          }
+          sourceLabel={nodeLabel(nodes, pendingConnection.source) ?? "source node"}
           targetLabel={
             pendingConnection.targets.length > 1
               ? `${pendingConnection.targets.length} selected nodes`
-              : ((nodes.find((n) => n.id === pendingConnection.targets[0])?.data.label as
-                  string | undefined) ?? "destination node")
+              : (nodeLabel(nodes, pendingConnection.targets[0]) ?? "destination node")
           }
           onSubmit={(link) => {
             createLinkedEdge(pendingConnection, link);

@@ -104,7 +104,9 @@ export function SettingsMenu({
                 />
                 <span>
                   <span className="source-panel__toggle-row-label">Highlight concepts</span>
-                  <span className="source-panel__toggle-row-desc">Each highlighted span becomes its own node</span>
+                  <span className="source-panel__toggle-row-desc">
+                    Each highlighted span becomes its own node
+                  </span>
                 </span>
               </label>
               <label

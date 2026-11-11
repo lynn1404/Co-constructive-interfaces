@@ -5,7 +5,6 @@ import { Canvas } from "./components/Canvas";
 import { ConceptDrawer } from "./components/ConceptDrawer";
 import { SourcePanel } from "./components/SourcePanel";
 import type { TextHighlight, HighlightMode } from "./types";
-import type { GraphSnapshotEntry } from "./utils/buildGraphSnapshot";
 import { shuffle } from "./utils/shuffle";
 
 import "./App.css";
@@ -19,7 +18,6 @@ export default function App() {
   const [highlights, setHighlights] = useState<TextHighlight[]>([]); // -> nodes
   const [readMarks, setReadMarks] = useState<TextHighlight[]>([]); // -> greying only
   const [submissionId, setSubmissionId] = useState<string | null>(null);
-  const [graphSnapshot, setGraphSnapshot] = useState<GraphSnapshotEntry[]>([]);
   const [spotlightHighlightIds, setSpotlightHighlightIds] = useState<string[]>([]);
   const [hideTextAfterExtraction, setHideTextAfterExtraction] = useState(false);
   const [extractionDone, setExtractionDone] = useState(false);
@@ -37,16 +35,12 @@ export default function App() {
     if (!deletedHighlight) return;
 
     setHighlights((prev) => prev.filter((h) => h.id !== nodeId));
-    setReadMarks((prev) =>
-      prev.filter((r) => textKey(r.text) !== textKey(deletedHighlight.text)),
-    );
+    setReadMarks((prev) => prev.filter((r) => textKey(r.text) !== textKey(deletedHighlight.text)));
   }
 
   function handleEdgeLabelRemoved(labelText: string) {
     // ungreys text when an edge label is removed
-    setReadMarks((prev) =>
-      prev.filter((r) => textKey(r.text) !== textKey(labelText))
-    );
+    setReadMarks((prev) => prev.filter((r) => textKey(r.text) !== textKey(labelText)));
   }
 
   function handleReset() {
@@ -56,7 +50,6 @@ export default function App() {
     setHighlights([]);
     setReadMarks([]);
     setSubmissionId(crypto.randomUUID());
-    setGraphSnapshot([]);
     setSpotlightHighlightIds([]);
     setExtractionDone(false);
     setDrawerConcepts([]);
@@ -126,9 +119,7 @@ export default function App() {
             setEdges={setEdges}
             onNodeDeleted={handleNodeDeleted}
             onEdgeLabelRemoved={handleEdgeLabelRemoved}
-            onGraphSnapshotChange={setGraphSnapshot}
             sourceText={submittedText ?? ""}
-            graphSnapshot={graphSnapshot}
             onNodeSelected={setSpotlightHighlightIds}
             editingHighlightRef={editingHighlightRef}
             drawerMode={hideTextAfterExtraction}

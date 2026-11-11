@@ -35,7 +35,9 @@ export function ShapeNudgeBanner({ classification, onOpenCanvas, onDismiss }: Pr
     <div className="chat-shape-banner">
       <span className="chat-shape-banner__dot" aria-hidden="true" />
       <div className="chat-shape-banner__text">
-        <p className="chat-shape-banner__title">Looks like you're building your understanding on something new.</p>
+        <p className="chat-shape-banner__title">
+          Looks like you're building your understanding on something new.
+        </p>
         <p className="chat-shape-banner__body">
           AI answers can be mistaken for genuine understanding, try reworking the ideas yourself.
         </p>

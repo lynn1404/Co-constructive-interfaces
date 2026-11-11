@@ -285,7 +285,9 @@ export function SourcePanel({
         <>
           <div className="chat-thread">
             {turns.length === 0 ? (
-              <div className="source-panel__placeholder chat-thread__placeholder">Ask something to get started</div>
+              <div className="source-panel__placeholder chat-thread__placeholder">
+                Ask something to get started
+              </div>
             ) : (
               turns.map((turn) => (
                 <div key={turn.id} className={`chat-bubble-row chat-bubble-row--${turn.role}`}>
