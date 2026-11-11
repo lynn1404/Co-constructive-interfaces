@@ -12,13 +12,9 @@ from app.utils.timing import log_timing, logger
 async def resolve_nodes(existing_graph: list[dict]) -> dict:
     """Suggest node merges across the whole graph in one call, no embeddings.
 
-    One call sees all labels at once and groups co-referents. Returns the same shape as
-    graph_resolver: {"groups": [{canonical, members, reason}], "n_nodes": int}.
-
-    Compared to graph_resolver (embed → cluster → confirm), this is simpler and cheaper,
-    but the model sees every pair at once which may cause it to miss near-synonyms it would
-    catch if they were in a small cluster together. On large maps (>20 nodes) the embedding
-    version is likely more reliable; for small maps this is sufficient.
+    One call sees all labels at once and groups co-referents. 
+    Returns : 
+    {"groups": [{canonical, members, reason}], "n_nodes": int}.
     """
     _, nodes = parse_existing_graph(existing_graph)
 
