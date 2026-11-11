@@ -10,7 +10,6 @@ import inspect
 import logging
 import time
 
-
 logger = logging.getLogger(__name__)
 
 def _label(args, kwargs) -> str:

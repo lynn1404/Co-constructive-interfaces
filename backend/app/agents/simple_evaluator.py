@@ -1,21 +1,18 @@
-from asyncio.log import logger
 import re
-from typing import List, Optional, Tuple
 import unicodedata
+from asyncio.log import logger
 
-from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
 
-from app.schemas import MapEvaluation
 from app.prompts import SIMPLE_AGENT_SYSTEM_PROMPT
+from app.schemas import MapEvaluation
 from app.utils.timing import log_timing
-
-
 
 _TRIPLET_RE = re.compile(r"^\s*(.+?)\s*--\[?(.+?)\]?-->\s*(.+?)\s*$")
 _NON_WORD_RE = re.compile(r"[\W_]+")
 
-def _parse_correction(s: str) -> Optional[dict]:
+def _parse_correction(s: str) -> dict | None:
     """Turn 'subject --[relation]--> object' into a triplet dict, or None when the model wrote
     guidance instead of a triplet."""
     if not s or not s.strip():
@@ -49,18 +46,18 @@ def _is_edge(e: dict) -> bool:
 
 
 @log_timing
-async def evaluate_map(source_text: str, edges: List[dict],
-                       model: str = "gpt-4o-mini") -> Tuple[List[dict], dict]:
+async def evaluate_map(source_text: str, edges: list[dict],
+                       model: str = "gpt-4o-mini") -> tuple[list[dict], dict]:
     """
     Evaluates a student's knowledge graph by validating each complete triplet against
     the reference text using an LLM. Preserves previously judged edges, evaluates only
     new or modified edges, verifies supporting quotes, and returns updated graph data
     along with evaluation results and student-facing feedback.
     """
-    
+
     non_edges = [e for e in edges if not _is_edge(e)]
     edges = [dict(e) for e in edges if _is_edge(e)]
-    
+
     # if no complete edges, meaning only isolated nodes, return early with empty results
     if not edges:
         return non_edges, {"summary": {"verified": 0, "flagged": 0, "blocked": 0},
@@ -130,8 +127,8 @@ async def evaluate_map(source_text: str, edges: List[dict],
     missing = [i for i in to_grade if i not in by_idx]
     if missing:
         logger.warning("evaluate_map: no verdict for indices %s", missing)
-    
-    
+
+
     results, student = [], []
     for i, edge in enumerate(edges):
         trip = {"subject": edge["subject"], "predicate": edge["predicate"],

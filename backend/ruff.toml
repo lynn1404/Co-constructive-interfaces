@@ -1,0 +1,9 @@
+line-length = 110
+
+[lint]
+select = ["F", "E", "W", "I", "G"]
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]   # package re-exports, imported as `from app.schemas import X`
+"app/prompts/*" = ["E501"] # prompt text; wrapping it would change what the model reads
+"app/main.py" = ["E402"]   # load_dotenv() must run before the app imports

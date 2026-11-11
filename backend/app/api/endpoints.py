@@ -1,39 +1,38 @@
-from fastapi import APIRouter
-from langchain_openai import ChatOpenAI
 import logging
 
-logger = logging.getLogger(__name__)
+from fastapi import APIRouter
+from langchain_openai import ChatOpenAI
 
 #importing error handler for on purpose errors
-from app.api.error_handling import AppError
-
-#importing Chat schemas
-from app.schemas import ChatRequest, ChatResponse, ClassifyShapeRequest, ClassifyShapeResponse
-
 #importing chat functions
 from app.agents.classifer import classify_shape
+from app.agents.node_resolver import resolve_nodes
 
-#importing pipeline schemas
-from app.schemas import (SimpleEvalRequest, 
-                         SimpleEvalResponse, 
-                         SimpleGapRequest,
-                        SimpleGapResponse, 
-                        SimpleSegmentRequest, 
-                        SimpleSegmentResponse,
-                        ResolveNodesRequest, 
-                        ResolveNodesResponse)
-
-#importing pipeline functions 
+#importing pipeline functions
 from app.agents.simple_evaluator import evaluate_map
 from app.agents.simple_gap_analyzer import analyze_gaps_simple
 from app.agents.simple_segmenter import simple_segment_concepts
-from app.agents.node_resolver import resolve_nodes
+from app.api.error_handling import AppError
 
-
-
+#importing Chat schemas
+#importing pipeline schemas
+from app.schemas import (
+    ChatRequest,
+    ChatResponse,
+    ClassifyShapeRequest,
+    ClassifyShapeResponse,
+    ResolveNodesRequest,
+    ResolveNodesResponse,
+    SimpleEvalRequest,
+    SimpleEvalResponse,
+    SimpleGapRequest,
+    SimpleGapResponse,
+    SimpleSegmentRequest,
+    SimpleSegmentResponse,
+)
 
 router = APIRouter()
-
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------- chat
 

@@ -1,21 +1,22 @@
-from typing import Optional
 
-from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
 
-from app.utils.graph_parser import _norm
-from app.utils.timing import logger
-from app.schemas import SimpleSegmenterOutput
 from app.prompts import SIMPLE_SEGMENTER_SYSTEM_PROMPT
- 
-async def simple_segment_concepts(highlighted_text: str, full_text: Optional[str] = None) -> dict:
+from app.schemas import SimpleSegmenterOutput
+from app.utils.graph_parser import _norm
+from app.utils.timing import log_timing, logger
+
+
+@log_timing
+async def simple_segment_concepts(highlighted_text: str, full_text: str | None = None) -> dict:
     """Extract concepts from a student's highlighted span.
     Paraphrase is allowed - the model suggests clean node labels, not verbatim extracts.
     Returns {"concepts": [{label, source_span}], "n_concepts": int, "reasoning": str}.
     """
     if not highlighted_text or not highlighted_text.strip():
         return {"concepts": [], "n_concepts": 0, "reasoning": None}
- 
+
     agent = ChatOpenAI(model="gpt-4o-mini", temperature=0).with_structured_output(SimpleSegmenterOutput)
     prompt = ChatPromptTemplate.from_messages([
         ("system", SIMPLE_SEGMENTER_SYSTEM_PROMPT),
@@ -28,7 +29,7 @@ async def simple_segment_concepts(highlighted_text: str, full_text: Optional[str
         full_text=full_text or "(not provided)",
         span=highlighted_text,
     ))
- 
+
     concepts, seen = [], set()
     for c in result.concepts:
         label = " ".join((c.label or "").split())
@@ -39,7 +40,7 @@ async def simple_segment_concepts(highlighted_text: str, full_text: Optional[str
             "label": label,
             "source_span": " ".join((c.source_span or "").split()) or label,
         })
- 
+
     logger.info("segment_concepts: %d concept(s) from %d-char span", len(concepts), len(highlighted_text))
     return {
         "concepts": concepts,

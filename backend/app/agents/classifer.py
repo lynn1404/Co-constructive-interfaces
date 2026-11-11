@@ -1,23 +1,24 @@
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
-from app.schemas import ShapeClassification
-from app.prompts import SHAPE_CLASSIFIER_SYSTEM_PROMPT
-from app.utils.timing import logger
-from typing import Optional
 import re
 
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+
+from app.prompts import SHAPE_CLASSIFIER_SYSTEM_PROMPT
+from app.schemas import ShapeClassification
+from app.utils.timing import log_timing, logger
+
 MIN_WORDS = 60
- 
- 
+
+
 def _strip_decoration(text: str) -> str:
     """Remove styling that carries no meaning. Headers and list markers are deliberately KEPT - a
     header with items under it, or repeated parallel labels, often carry the structure itself."""
     text = re.sub(r"[\U0001F300-\U0001FAFF\u2600-\u27BF]", " ", text)   # emoji
     text = re.sub(r"\*\*|__|~~|`", "", text)                             # bold/italic/strike/inline code
     return text
- 
- 
-def _prefilter(answer: str) -> Optional[str]:
+
+
+def _prefilter(answer: str) -> str | None:
     """Cheap reject, no model call. Returns a reason when the answer is not worth classifying."""
     if not answer or not answer.strip():
         return "empty answer"
@@ -25,8 +26,8 @@ def _prefilter(answer: str) -> Optional[str]:
     if words < MIN_WORDS:
         return f"too short ({words} words)"
     return None
- 
- 
+
+
 def _derive(result: ShapeClassification) -> tuple:
     """Filter to substantive shapes, primary first.
  
@@ -40,8 +41,9 @@ def _derive(result: ShapeClassification) -> tuple:
     if primary is not None:
         worth = [primary] + [s for s in worth if s is not primary]
     return True, worth, worth[0].reason
- 
-async def classify_shape(answer: str, user_prompt: Optional[str] = None) -> dict:
+
+@log_timing
+async def classify_shape(answer: str, user_prompt: str | None = None) -> dict:
     """Decide whether an assistant answer is worth rebuilding as a diagram, and which shapes fit.
  
     Two gates, cheap first: a length prefilter with no model call, then one call that judges purpose
@@ -60,7 +62,7 @@ async def classify_shape(answer: str, user_prompt: Optional[str] = None) -> dict
         logger.info(f"classify_shape: prefilter rejected - {rejected}")
         return {"is_mappable": False, "shapes": [], "primary": None, "reason": rejected,
                 "gated_by": "prefilter", "is_knowledge": None, "purpose": None, "analysis": None}
- 
+
     agent = ChatOpenAI(model="gpt-4o-mini", temperature=0).with_structured_output(ShapeClassification)
     prompt = ChatPromptTemplate.from_messages([
         ("system", SHAPE_CLASSIFIER_SYSTEM_PROMPT),
@@ -73,7 +75,7 @@ async def classify_shape(answer: str, user_prompt: Optional[str] = None) -> dict
         user_prompt=user_prompt or "(not provided)",
         answer=_strip_decoration(answer),
     ))
- 
+
     if not result.is_knowledge_content:
         logger.info("classify_shape: rejected as task content, not knowledge")
         return {
@@ -82,7 +84,7 @@ async def classify_shape(answer: str, user_prompt: Optional[str] = None) -> dict
             "gated_by": "knowledge", "is_knowledge": False,
             "purpose": result.purpose_check, "analysis": result.shape_reasoning,
         }
- 
+
     mappable, worth, why = _derive(result)
     logger.info(
         f"classify_shape: mappable={mappable} primary={worth[0].shape if worth else None} "
@@ -98,4 +100,3 @@ async def classify_shape(answer: str, user_prompt: Optional[str] = None) -> dict
         "purpose": result.purpose_check,      # INTERNAL - not for display
         "analysis": result.shape_reasoning,   # INTERNAL - not for display
     }
- 

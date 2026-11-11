@@ -1,7 +1,8 @@
-from typing import Tuple, List, Any, Dict, Optional
 from collections import deque
+from typing import Any
 
-def parse_existing_graph(existing_graph: List[Dict[str, Any]]) -> Tuple[str, List[str]]:
+
+def parse_existing_graph(existing_graph: list[dict[str, Any]]) -> tuple[str, list[str]]:
     """Explicitly classifies graph state and extracts all unique entity node labels."""
     if not existing_graph:
         return "empty", []
@@ -15,9 +16,9 @@ def parse_existing_graph(existing_graph: List[Dict[str, Any]]) -> Tuple[str, Lis
         elif isinstance(item, dict):
             if "predicate" in item:
                 has_triplets = True
-                if item.get("subject"): 
+                if item.get("subject"):
                     nodes.add(item["subject"])
-                if item.get("object"): 
+                if item.get("object"):
                     nodes.add(item["object"])
             elif "node" in item:
                 nodes.add(item["node"])
@@ -41,7 +42,7 @@ def _norm(value: Any) -> str:
     return " ".join(str(value).split()).casefold()
 
 
-def extract_edges(existing_graph: List[Any]) -> List[Tuple[str, str, str]]:
+def extract_edges(existing_graph: list[Any]) -> list[tuple[str, str, str]]:
     """Pull well-formed (subject, predicate, object) tuples out of the raw graph payload."""
     edges = []
     for item in existing_graph or []:
@@ -52,10 +53,10 @@ def extract_edges(existing_graph: List[Any]) -> List[Tuple[str, str, str]]:
     return edges
 
 
-def extract_isolated_nodes(existing_graph: List[Any], edges: List[Tuple[str, str, str]]) -> List[str]:
+def extract_isolated_nodes(existing_graph: list[Any], edges: list[tuple[str, str, str]]) -> list[str]:
     """Node labels that carry no edge. Handles bare strings and node/label/id dicts."""
     connected = {_norm(n) for (s, _, o) in edges for n in (s, o)}
-    isolated: List[str] = []
+    isolated: list[str] = []
     for item in existing_graph or []:
         label = None
         if isinstance(item, str):
@@ -70,13 +71,13 @@ def extract_isolated_nodes(existing_graph: List[Any], edges: List[Tuple[str, str
     return isolated
 
 
-def parse_existing_graph(existing_graph: List[Dict[str, Any]]) -> Tuple[str, List[str]]:
+def parse_existing_graph(existing_graph: list[dict[str, Any]]) -> tuple[str, list[str]]:
     """Classify graph state and extract all unique entity node labels, in graph order."""
     if not existing_graph:
         return "empty", []
 
     edges = extract_edges(existing_graph)
-    nodes: List[str] = []
+    nodes: list[str] = []
     seen = set()
     for (subj, _, obj) in edges:
         for label in (subj, obj):
@@ -92,7 +93,7 @@ def parse_existing_graph(existing_graph: List[Dict[str, Any]]) -> Tuple[str, Lis
     return graph_type, nodes
 
 
-def render_chains(edges: List[Tuple[str, str, str]]) -> Tuple[List[str], List[Tuple[str, str, str]]]:
+def render_chains(edges: list[tuple[str, str, str]]) -> tuple[list[str], list[tuple[str, str, str]]]:
     """Render the edge set as maximal directed paths.
 
     Returns (chain_lines, leftover_edges). Leftovers are edges only reachable inside a cycle,
@@ -101,9 +102,9 @@ def render_chains(edges: List[Tuple[str, str, str]]) -> Tuple[List[str], List[Tu
     if not edges:
         return [], []
 
-    out_adj: Dict[str, List[Tuple[str, str]]] = {}
-    indeg: Dict[str, int] = {}
-    label_of: Dict[str, str] = {}
+    out_adj: dict[str, list[tuple[str, str]]] = {}
+    indeg: dict[str, int] = {}
+    label_of: dict[str, str] = {}
 
     for (subj, pred, obj) in edges:
         s_key, o_key = _norm(subj), _norm(obj)
@@ -115,7 +116,7 @@ def render_chains(edges: List[Tuple[str, str, str]]) -> Tuple[List[str], List[Tu
 
     starts = [k for k, d in indeg.items() if d == 0] or list(indeg.keys())
     covered = set()
-    lines: List[str] = []
+    lines: list[str] = []
 
     def walk(node_key: str, rendered: str, seen: set) -> None:
         nxt = [(p, o) for (p, o) in out_adj.get(node_key, []) if o not in seen]
@@ -156,8 +157,8 @@ def format_existing_graph(existing_graph: list) -> str:
 
 
 def _find_path(
-    edges: List[Tuple[str, str, str]], start: str, goal: str
-) -> Optional[Tuple[str, int, List[str]]]:
+    edges: list[tuple[str, str, str]], start: str, goal: str
+) -> tuple[str, int, list[str]] | None:
     """Shortest directed path start -> goal.
 
     Returns (rendered_path, hop_count, intermediate_labels) or None if unreachable.
@@ -166,8 +167,8 @@ def _find_path(
     graph already represents). Those need opposite verdicts, so the caller must be able
     to tell them apart.
     """
-    adj: Dict[str, List[Tuple[str, str]]] = {}
-    label_of: Dict[str, str] = {}
+    adj: dict[str, list[tuple[str, str]]] = {}
+    label_of: dict[str, str] = {}
     for (subj, pred, obj) in edges:
         s_key, o_key = _norm(subj), _norm(obj)
         label_of.setdefault(s_key, subj)
@@ -212,7 +213,7 @@ def verified_edge_keys(existing_graph: list) -> set:
 
 
 def find_exact_duplicate(existing_graph: list, triplet: dict,
-                         require_verified: bool = False) -> Optional[Dict[str, str]]:
+                         require_verified: bool = False) -> dict[str, str] | None:
     """The existing edge this candidate reproduces exactly, comparing normalised, or None.
 
     Exact here means all three of subject, predicate and object match after whitespace and
@@ -239,16 +240,16 @@ def find_exact_duplicate(existing_graph: list, triplet: dict,
 
 
 
-def _verified_chains_through(edges: List[Tuple[str, str, str]], keys: set) -> Tuple[List[str], bool]:
+def _verified_chains_through(edges: list[tuple[str, str, str]], keys: set) -> tuple[list[str], bool]:
     """Maximal directed chains (rendered) whose node set touches any key in `keys`.
 
     Returns (chain_lines, any_touch). Mirrors render_chains' walk but tracks the node-key set of
     each chain so membership is exact, not a substring guess. Cycle-safe: edges only reachable in
     a cycle are surfaced as their own one-hop lines if they touch.
     """
-    out_adj: Dict[str, List[Tuple[str, str]]] = {}
-    indeg: Dict[str, int] = {}
-    label_of: Dict[str, str] = {}
+    out_adj: dict[str, list[tuple[str, str]]] = {}
+    indeg: dict[str, int] = {}
+    label_of: dict[str, str] = {}
     for (s, p, o) in edges:
         sk, ok = _norm(s), _norm(o)
         label_of.setdefault(sk, s)
@@ -258,7 +259,7 @@ def _verified_chains_through(edges: List[Tuple[str, str, str]], keys: set) -> Tu
         indeg[ok] = indeg.get(ok, 0) + 1
 
     starts = [k for k, d in indeg.items() if d == 0] or list(indeg.keys())
-    lines: List[str] = []
+    lines: list[str] = []
     covered = set()
 
     def walk(node_key, rendered, node_set, seen):
@@ -326,7 +327,7 @@ def build_candidate_context(existing_graph: list, triplet: dict) -> str:
         return ("- The verified graph is empty - no verified edges yet.\n"
                 "- Judge the candidate against the source text alone.")
 
-    findings: List[str] = []
+    findings: list[str] = []
 
     for role, label, key in (("subject", subj, s_key), ("object", obj, o_key)):
         incoming = [(s, p, o) for (s, p, o) in edges if _norm(o) == key]
@@ -355,12 +356,12 @@ def _triplet_of(edge: dict) -> dict:
     return {"subject": edge["subject"], "predicate": edge["predicate"], "object": edge["object"]}
 
 
-def _topo_edge_order(edges: List[dict]) -> List[dict]:
+def _topo_edge_order(edges: list[dict]) -> list[dict]:
     """Edges in root-first order: an edge whose subject depends on another edge's object comes
     later. Cycle-safe - edges only reachable inside a cycle are appended at the end, so the walk
     terminates and never drops an edge."""
-    out_edges: Dict[str, List[dict]] = {}
-    indeg: Dict[str, int] = {}
+    out_edges: dict[str, list[dict]] = {}
+    indeg: dict[str, int] = {}
     nodes: set = set()
     for e in edges:
         sk, ok = _norm(e["subject"]), _norm(e["object"])
@@ -371,7 +372,7 @@ def _topo_edge_order(edges: List[dict]) -> List[dict]:
 
     queue = deque(sorted(k for k in nodes if indeg.get(k, 0) == 0))
     seen_nodes = set(queue)
-    ordered: List[dict] = []
+    ordered: list[dict] = []
     emitted: set = set()
     while queue:
         n = queue.popleft()
@@ -398,7 +399,7 @@ def _edge_key(triplet: dict) -> tuple:
     return (_norm(triplet["subject"]), _norm(triplet["predicate"]), _norm(triplet["object"]))
 
 
-def _match_node(label: str, known_nodes: List[str]) -> Optional[str]:
+def _match_node(label: str, known_nodes: list[str]) -> str | None:
     """Return the known node this label denotes, comparing normalised.
 
     Plain `label in known_nodes` misses on casing or whitespace drift, which would report a
@@ -411,7 +412,7 @@ def _match_node(label: str, known_nodes: List[str]) -> Optional[str]:
     return None
 
 
-def _add_node(known_nodes: List[str], label: str) -> None:
+def _add_node(known_nodes: list[str], label: str) -> None:
     if _match_node(label, known_nodes) is None:
         known_nodes.append(label)
 

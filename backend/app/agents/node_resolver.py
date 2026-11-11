@@ -1,14 +1,15 @@
-from typing import List, Dict, Any, Optional
-from langchain_openai import ChatOpenAI
+
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
 
-from app.schemas import NodeResolution
 from app.prompts import NODE_RESOLUTION_SYSTEM_PROMPT
+from app.schemas import NodeResolution
 from app.utils.graph_parser import _norm, parse_existing_graph
-from app.utils.timing import logger
+from app.utils.timing import log_timing, logger
 
 
-async def resolve_nodes(existing_graph: List[dict]) -> dict:
+@log_timing
+async def resolve_nodes(existing_graph: list[dict]) -> dict:
     """Suggest node merges across the whole graph in one call, no embeddings.
 
     One call sees all labels at once and groups co-referents. Returns the same shape as

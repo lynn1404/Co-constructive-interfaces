@@ -1,4 +1,4 @@
-from typing import Optional, Literal, List
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -29,11 +29,11 @@ class ShapeClassification(BaseModel):
                     "that way, with evidence rather than a verdict: for a flowchart quote the "
                     "conditions, for a comparison name the shared aspects. Several may fit at once."
     )
-    available_shapes: List[ShapeOption] = Field(
+    available_shapes: list[ShapeOption] = Field(
         default_factory=list,
         description="Every shape that genuinely fits, not just the best one. Empty when none do."
     )
-    primary_shape: Optional[Literal["comparison", "concept_map", "flowchart", "sequence"]] = Field(
+    primary_shape: Literal["comparison", "concept_map", "flowchart", "sequence"] | None = Field(
         default=None,
         description="Of the shapes you listed, the one that would teach the most if the student built "
                     "it themselves. Judge by what drawing it forces them to work out, not by which "
@@ -77,16 +77,16 @@ class EdgeEvaluation(BaseModel):
                     "Empty string when correct."
     )
 
- 
- 
+
+
 class MapEvaluation(BaseModel):
-    evaluations: List[EdgeEvaluation] = Field(
+    evaluations: list[EdgeEvaluation] = Field(
         description="Exactly one evaluation per input edge index - no more, no fewer."
     )
 
 
 class MergeGroup(BaseModel):
-    members: List[str] = Field(
+    members: list[str] = Field(
         description="Two or more labels that refer to the SAME concept, copied verbatim."
     )
     reason: str = Field(description="One line on why these co-refer.")
@@ -98,7 +98,7 @@ class NodeResolution(BaseModel):
                     "look similar, apply the same-concept test: same thing under different words, "
                     "or merely related/containing? Name which are the same and why."
     )
-    groups: List[MergeGroup] = Field(
+    groups: list[MergeGroup] = Field(
         default_factory=list,
         description="Each set of co-referring labels. Empty when nothing should merge."
     )
@@ -126,7 +126,7 @@ class GapAnalysis(BaseModel):
                     "partial coverage - a concept touched by one edge but not developed is "
                     "partially covered, not missing."
     )
-    gaps: List[Gap] = Field(
+    gaps: list[Gap] = Field(
         default_factory=list,
         description="The most substantial missing ideas, up to 5. Most important first. Empty when "
                     "the map covers the text's main content."
@@ -148,8 +148,8 @@ class ExtractedConcept(BaseModel):
         description="The words from the highlighted span this concept comes from. May differ from "
                     "the label when the label paraphrases or converts to gerund form."
     )
- 
- 
+
+
 class SimpleSegmenterOutput(BaseModel):
     """Reasoning FIRST — the segmentation decision happens before the list exists."""
     segmentation_reasoning: str = Field(
@@ -158,7 +158,7 @@ class SimpleSegmenterOutput(BaseModel):
                     "decision. Conjunctions often split; qualifiers that change the meaning stay "
                     "attached; relation words ('such as', 'which', 'leads to') are not concepts."
     )
-    concepts: List[ExtractedConcept] = Field(
+    concepts: list[ExtractedConcept] = Field(
         default_factory=list,
         description="Every distinct concept from the span, in the order they appear. Empty when the "
                     "span carries no mappable concept."
