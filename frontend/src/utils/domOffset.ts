@@ -1,8 +1,4 @@
-export function textOffsetOf(
-  root: Node,
-  targetNode: Node,
-  offsetInTarget: number
-): number {
+export function textOffsetOf(root: Node, targetNode: Node, offsetInTarget: number): number {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   let total = 0;
   let current = walker.nextNode();

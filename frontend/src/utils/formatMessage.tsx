@@ -48,7 +48,7 @@ export function formatMessage(text: string): FormattedMessage {
         nodes.push(
           <a key={`${keyPrefix}-a${i++}`} href={href} target="_blank" rel="noopener noreferrer">
             {linkText}
-          </a>
+          </a>,
         );
         plain.push(linkText);
       }
@@ -250,13 +250,8 @@ export function formatMessage(text: string): FormattedMessage {
       flushList();
       const level = heading[1].length;
       const HeadingTag = (["h3", "h3", "h4", "h5", "h5", "h6"][level - 1] ?? "h6") as
-        | "h3"
-        | "h4"
-        | "h5"
-        | "h6";
-      pushBlock(() => (
-        <HeadingTag key={i}>{renderInline(heading[2], `h-${i}`)}</HeadingTag>
-      ));
+        "h3" | "h4" | "h5" | "h6";
+      pushBlock(() => <HeadingTag key={i}>{renderInline(heading[2], `h-${i}`)}</HeadingTag>);
       continue;
     }
 

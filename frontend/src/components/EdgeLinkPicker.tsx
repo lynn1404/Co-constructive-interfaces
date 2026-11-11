@@ -88,7 +88,10 @@ export function EdgeLinkPicker({ anchor, sourceLabel, targetLabel, onSubmit, onC
         </div>
         {category === null ? (
           <div className="edge-link-picker__title">
-            <p>How is the relation between <strong>{sourceLabel}</strong> and <strong>{targetLabel}</strong> best described?</p>
+            <p>
+              How is the relation between <strong>{sourceLabel}</strong> and <strong>{targetLabel}</strong>{" "}
+              best described?
+            </p>
           </div>
         ) : (
           <div className="edge-link-picker__title">
@@ -123,18 +126,10 @@ export function EdgeLinkPicker({ anchor, sourceLabel, targetLabel, onSubmit, onC
               onChange={(e) => setCustomLink(e.target.value)}
             />
             <div className="edge-link-picker__custom-actions">
-              <button
-                type="button"
-                className="edge-link-picker__back"
-                onClick={() => setCustomLink(null)}
-              >
+              <button type="button" className="edge-link-picker__back" onClick={() => setCustomLink(null)}>
                 ← Back to list
               </button>
-              <button
-                type="submit"
-                className="edge-link-picker__custom-submit"
-                disabled={!customLink.trim()}
-              >
+              <button type="submit" className="edge-link-picker__custom-submit" disabled={!customLink.trim()}>
                 Use this
               </button>
             </div>
@@ -182,6 +177,6 @@ export function EdgeLinkPicker({ anchor, sourceLabel, targetLabel, onSubmit, onC
         </div>
       )}
     </div>,
-    document.body
+    document.body,
   );
 }

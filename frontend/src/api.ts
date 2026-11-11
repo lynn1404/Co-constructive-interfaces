@@ -17,9 +17,7 @@ import type {
 
 const API_BASE = "http://localhost:8000/api";
 
-export async function checkTriplet(
-  req: CheckTripletRequest
-): Promise<CheckTripletResponse> {
+export async function checkTriplet(req: CheckTripletRequest): Promise<CheckTripletResponse> {
   const res = await fetch(`${API_BASE}/check-triplet`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -34,9 +32,7 @@ export async function checkTriplet(
   return res.json();
 }
 
-export async function verifyGraph(
-  req: VerifyGraphRequest
-): Promise<VerifyGraphResponse> {
+export async function verifyGraph(req: VerifyGraphRequest): Promise<VerifyGraphResponse> {
   const res = await fetch(`${API_BASE}/simple-evaluate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -51,9 +47,7 @@ export async function verifyGraph(
   return res.json();
 }
 
-export async function analyzeGaps(
-  req: GapAnalysisRequest
-): Promise<GapAnalysisResponse> {
+export async function analyzeGaps(req: GapAnalysisRequest): Promise<GapAnalysisResponse> {
   const res = await fetch(`${API_BASE}/analyze-gaps`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -68,9 +62,7 @@ export async function analyzeGaps(
   return res.json();
 }
 
-export async function analyzeGapsSimple(
-  req: SimpleGapRequest
-): Promise<SimpleGapResponse> {
+export async function analyzeGapsSimple(req: SimpleGapRequest): Promise<SimpleGapResponse> {
   const res = await fetch(`${API_BASE}/simple-analyze-gaps`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -85,9 +77,7 @@ export async function analyzeGapsSimple(
   return res.json();
 }
 
-export async function segmentConcepts(
-  req: SegmentRequest
-): Promise<SegmentResponse> {
+export async function segmentConcepts(req: SegmentRequest): Promise<SegmentResponse> {
   const res = await fetch(`${API_BASE}/simple-segment-concepts`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -117,9 +107,7 @@ export async function sendChat(req: ChatRequest): Promise<ChatResponse> {
   return res.json();
 }
 
-export async function checkResolveNodes(
-  req: ResolveNodesRequest
-): Promise<ResolveNodesResponse> {
+export async function checkResolveNodes(req: ResolveNodesRequest): Promise<ResolveNodesResponse> {
   const res = await fetch(`${API_BASE}/simple-resolve-nodes`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

@@ -27,7 +27,7 @@ export interface SnappedSelection {
 export function snapSelectionToWords(
   fullText: string,
   rawStart: number,
-  rawEnd: number
+  rawEnd: number,
 ): SnappedSelection | null {
   // normalize: caller might pass indices out of order (e.g. a right-to-left drag)
   let start = Math.min(rawStart, rawEnd);

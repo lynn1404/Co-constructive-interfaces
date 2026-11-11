@@ -35,13 +35,11 @@ export function getParallelIndex(
   allEdges: { id: string; source: string; target: string }[],
   currentEdgeId: string,
   source: string,
-  target: string
+  target: string,
 ): { index: number; total: number } {
   const siblings = allEdges
     .filter(
-      (e) =>
-        (e.source === source && e.target === target) ||
-        (e.source === target && e.target === source)
+      (e) => (e.source === source && e.target === target) || (e.source === target && e.target === source),
     )
     .slice()
     .sort((a, b) => a.id.localeCompare(b.id));
@@ -62,7 +60,7 @@ export function getCurvedMidpoint(
   end: { x: number; y: number },
   index: number,
   total: number,
-  reversed = false
+  reversed = false,
 ) {
   if (total <= 1) {
     return { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };

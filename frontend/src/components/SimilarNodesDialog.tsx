@@ -22,9 +22,7 @@ export function SimilarNodesDialog({ groups, onClose }: Props) {
         </p>
 
         <div className="similar-nodes-dialog__list">
-          {groups.length === 0 && (
-            <div className="similar-nodes-dialog__empty">No similar nodes found.</div>
-          )}
+          {groups.length === 0 && <div className="similar-nodes-dialog__empty">No similar nodes found.</div>}
           {groups.map((group, i) => (
             <div className="similar-nodes-group" key={i}>
               <div className="similar-nodes-group__members">

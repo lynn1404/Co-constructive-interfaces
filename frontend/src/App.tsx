@@ -9,13 +9,11 @@ import type { TextHighlight } from "./types";
 import type { GraphSnapshotEntry } from "./utils/buildGraphSnapshot";
 import { shuffle } from "./utils/shuffle";
 
-
-
 export default function App() {
   const [submittedText, setSubmittedText] = useState<string | null>(null);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [highlights, setHighlights] = useState<TextHighlight[]>([]); // -> nodes
-  const [readMarks, setReadMarks] = useState<TextHighlight[]>([]);   // -> greying only
+  const [readMarks, setReadMarks] = useState<TextHighlight[]>([]); // -> greying only
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [graphSnapshot, setGraphSnapshot] = useState<GraphSnapshotEntry[]>([]);
   const [spotlightHighlightIds, setSpotlightHighlightIds] = useState<string[]>([]);
@@ -30,54 +28,59 @@ export default function App() {
   const editingHighlightRef = useRef<((text: string) => void) | null>(null);
 
   function handleNodeDeleted(nodeId: string) {
-  const deletedHighlight = highlights.find((h) => h.id === nodeId);
-  if (!deletedHighlight) return;
+    // removes highlight and ungreys text
+    const deletedHighlight = highlights.find((h) => h.id === nodeId);
+    if (!deletedHighlight) return;
 
-  setHighlights((prev) => prev.filter((h) => h.id !== nodeId));
-  setReadMarks((prev) =>
-    prev.filter((r) => r.text.trim().toLowerCase() !== deletedHighlight.text.trim().toLowerCase())
-  );
-}
+    setHighlights((prev) => prev.filter((h) => h.id !== nodeId));
+    setReadMarks((prev) =>
+      prev.filter((r) => r.text.trim().toLowerCase() !== deletedHighlight.text.trim().toLowerCase()),
+    );
+  }
 
-function handleEdgeLabelRemoved(labelText: string) {
-  setReadMarks((prev) =>
-    prev.filter((r) => r.text.trim().toLowerCase() !== labelText.trim().toLowerCase())
-  );
-}
+  function handleEdgeLabelRemoved(labelText: string) {
+    // removes edge label
+    setReadMarks((prev) =>
+      prev.filter((r) => r.text.trim().toLowerCase() !== labelText.trim().toLowerCase()),
+    );
+  }
 
-function handleReset() {
-  setSubmittedText(null);
-  setEdges([]);
-  setHighlights([]);
-  setReadMarks([]);
-  setSubmissionId(crypto.randomUUID());
-  setGraphSnapshot([]);
-  setSpotlightHighlightIds([]);
-  setExtractionDone(false);
-  setDrawerConcepts([]);
-  setCanvasOpen(false);
-}
+  function handleReset() {
+    // resets the canvas
+    setSubmittedText(null);
+    setEdges([]);
+    setHighlights([]);
+    setReadMarks([]);
+    setSubmissionId(crypto.randomUUID());
+    setGraphSnapshot([]);
+    setSpotlightHighlightIds([]);
+    setExtractionDone(false);
+    setDrawerConcepts([]);
+    setCanvasOpen(false);
+  }
 
-function handleFinishExtraction() {
-  setDrawerConcepts(shuffle(highlights));
-  setExtractionDone(true);
-}
+  function handleFinishExtraction() {
+    // fills the concepts drawer in shuffled order
+    setDrawerConcepts(shuffle(highlights));
+    setExtractionDone(true);
+  }
 
-function handleConceptPlaced(highlightId: string) {
-  setDrawerConcepts((prev) => prev.filter((h) => h.id !== highlightId));
-}
+  function handleConceptPlaced(highlightId: string) {
+    setDrawerConcepts((prev) => prev.filter((h) => h.id !== highlightId));
+  }
 
-function handleOpenCanvas(text: string) {
-  setSubmittedText(text);
-  setSubmissionId(crypto.randomUUID());
-  setHighlights([]);
-  setReadMarks([]);
-  setCanvasOpen(true);
-}
+  function handleOpenCanvas(text: string) {
+    // opens the canvas with the submitted text
+    setSubmittedText(text);
+    setSubmissionId(crypto.randomUUID());
+    setHighlights([]);
+    setReadMarks([]);
+    setCanvasOpen(true);
+  }
 
-function handleBackToChat() {
-  setCanvasOpen(false);
-}
+  function handleBackToChat() {
+    setCanvasOpen(false);
+  }
 
   return (
     <div className="app-layout">

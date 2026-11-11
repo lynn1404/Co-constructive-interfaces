@@ -12,7 +12,6 @@ export interface Triplet {
   object: string;
 }
 
-
 export interface CheckTripletResponse {
   graph_state: string;
   verification: {
@@ -51,7 +50,16 @@ export interface StudentVerificationEntry {
   triplet: Triplet;
   state: "verified" | "flagged" | "blocked";
   status: "correct" | "incorrect" | "incomplete" | "redundant" | null;
-  error_type: "duplicate" | "unfinished_process" | "skipped_mediator" | "not_in_text" | "wrong_object" | "wrong_subject" | "wrong_subject" | "reversed_relation" | null;
+  error_type:
+    | "duplicate"
+    | "unfinished_process"
+    | "skipped_mediator"
+    | "not_in_text"
+    | "wrong_object"
+    | "wrong_subject"
+    | "wrong_subject"
+    | "reversed_relation"
+    | null;
   hint: string | null;
   reflection?: string | null;
   suggested_triplets: Triplet[];

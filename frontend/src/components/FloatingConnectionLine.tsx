@@ -16,10 +16,5 @@ export function FloatingConnectionLine({ fromNode, toX, toY }: ConnectionLineCom
 
   const start = getBorderIntersection(sourceRect, { x: toX, y: toY });
 
-  return (
-    <path
-      d={`M${start.x},${start.y} L${toX},${toY}`}
-      className="floating-connection-line"
-    />
-  );
+  return <path d={`M${start.x},${start.y} L${toX},${toY}`} className="floating-connection-line" />;
 }

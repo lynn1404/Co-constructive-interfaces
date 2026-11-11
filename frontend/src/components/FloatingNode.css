@@ -5,7 +5,9 @@
   background: white;
   font-size: 0.85rem;
   position: relative;
-  transition: background-color 0.6s ease, border-color 0.6s ease;
+  transition:
+    background-color 0.6s ease,
+    border-color 0.6s ease;
 }
 
 .floating-node--new {
@@ -28,8 +30,12 @@
   left: 0;
   transform: none;
 }
-.floating-node .react-flow__handle-top { top: 0; }
-.floating-node .react-flow__handle-bottom { bottom: 0; }
+.floating-node .react-flow__handle-top {
+  top: 0;
+}
+.floating-node .react-flow__handle-bottom {
+  bottom: 0;
+}
 
 .floating-node .react-flow__handle-left,
 .floating-node .react-flow__handle-right {
@@ -38,8 +44,12 @@
   top: 0;
   transform: none;
 }
-.floating-node .react-flow__handle-left { left: 0; }
-.floating-node .react-flow__handle-right { right: 0; }
+.floating-node .react-flow__handle-left {
+  left: 0;
+}
+.floating-node .react-flow__handle-right {
+  right: 0;
+}
 
 .floating-node--selected {
   border-color: #2563eb;

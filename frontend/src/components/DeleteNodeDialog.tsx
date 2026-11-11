@@ -13,8 +13,8 @@ export function DeleteNodeDialog({ nodeLabel, relationCount, onCancel, onConfirm
       <div className="delete-node-dialog">
         <div className="delete-node-dialog__eyebrow">Delete node</div>
         <div className="delete-node-dialog__message">
-          Are you sure you want to delete <strong>{nodeLabel}</strong>? It has {relationCount}{" "}
-          relation{relationCount === 1 ? "" : "s"}.
+          Are you sure you want to delete <strong>{nodeLabel}</strong>? It has {relationCount} relation
+          {relationCount === 1 ? "" : "s"}.
         </div>
 
         <div className="delete-node-dialog__actions">

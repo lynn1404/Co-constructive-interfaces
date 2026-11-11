@@ -31,7 +31,14 @@ interface FloatingNodeExtraProps {
   onRequestDelete?: (nodeId: string) => void;
 }
 
-export function FloatingNode({ id, data, selected, registerEditingHandler, onNodeRenamed, onRequestDelete }: NodeProps & FloatingNodeExtraProps) {
+export function FloatingNode({
+  id,
+  data,
+  selected,
+  registerEditingHandler,
+  onNodeRenamed,
+  onRequestDelete,
+}: NodeProps & FloatingNodeExtraProps) {
   const nodeData = data as unknown as FloatingNodeData;
   const { updateNodeData } = useReactFlow();
   const [isEditing, setIsEditing] = useState(!!nodeData.autoEdit);
@@ -120,18 +127,10 @@ export function FloatingNode({ id, data, selected, registerEditingHandler, onNod
       style={nodeData.isNew ? undefined : { backgroundColor: NODE_COLORS[color] }}
     >
       <NodeToolbar isVisible={selected && !isEditing} className="floating-node-toolbar nodrag nopan">
-        <button
-          className="floating-node-toolbar__btn"
-          title="Rename"
-          onClick={startEditing}
-        >
+        <button className="floating-node-toolbar__btn" title="Rename" onClick={startEditing}>
           ✏️
         </button>
-        <button
-          className="floating-node-toolbar__btn"
-          title="Delete"
-          onClick={handleDelete}
-        >
+        <button className="floating-node-toolbar__btn" title="Delete" onClick={handleDelete}>
           🗑️
         </button>
 

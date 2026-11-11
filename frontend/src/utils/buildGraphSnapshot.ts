@@ -21,8 +21,7 @@ export function buildGraphSnapshot(nodes: Node[], edges: Edge[]): GraphSnapshotE
     const source = nodes.find((n) => n.id === edge.source);
     const target = nodes.find((n) => n.id === edge.target);
     const edgeData = edge.data as
-      | { label?: string; verification?: StudentVerificationEntry | null }
-      | undefined;
+      { label?: string; verification?: StudentVerificationEntry | null } | undefined;
     const predicate = edgeData?.label;
 
     if (!source || !target || !predicate) continue;

@@ -55,7 +55,6 @@ export function FloatingEdge({
   onOpenPanel,
   restrictedLinks,
 }: EdgeProps & FloatingEdgeExtraProps) {
-
   const sourceNode = useInternalNode(source);
   const targetNode = useInternalNode(target);
   const edges = useStore((s) => s.edges);
@@ -78,7 +77,6 @@ export function FloatingEdge({
     }
     // anchor is captured once when the picker opens; it intentionally does not
     // track the label afterwards so a manual drag isn't undone by re-renders.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showingPicker]);
 
   if (!sourceNode || !targetNode) return null;
@@ -159,7 +157,7 @@ export function FloatingEdge({
 
   return (
     <>
-    <path
+      <path
         d={path}
         fill="none"
         stroke="transparent"

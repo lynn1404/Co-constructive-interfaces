@@ -80,7 +80,9 @@
   padding: 8px 10px;
   font-size: 11px;
   color: #374151;
-  transition: box-shadow 0.2s, border-color 0.2s;
+  transition:
+    box-shadow 0.2s,
+    border-color 0.2s;
 }
 
 .verification-card--focused {
