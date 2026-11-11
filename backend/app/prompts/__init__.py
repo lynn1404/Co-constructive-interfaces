@@ -1,5 +1,5 @@
 from app.prompts.classifier import SHAPE_CLASSIFIER_SYSTEM_PROMPT
-from app.prompts.simple_agent import SIMPLE_AGENT_SYSTEM_PROMPT
+from app.prompts.simple_evaluator import SIMPLE_AGENT_SYSTEM_PROMPT
 from app.prompts.node_resolution import NODE_RESOLUTION_SYSTEM_PROMPT
-from app.prompts.simple_gap import SIMPLE_GAP_SYSTEM_PROMPT
+from app.prompts.simple_gap_analyzer import SIMPLE_GAP_SYSTEM_PROMPT
 from app.prompts.simple_segmenter import SIMPLE_SEGMENTER_SYSTEM_PROMPT

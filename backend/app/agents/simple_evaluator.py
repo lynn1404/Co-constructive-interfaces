@@ -1,25 +1,23 @@
-# ============================================================
-# app/agents/simple_agent.py
-# ============================================================
+from asyncio.log import logger
 import re
-import time
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Optional, Tuple
+import unicodedata
 
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
 from app.schemas import MapEvaluation
 from app.prompts import SIMPLE_AGENT_SYSTEM_PROMPT
-from app.utils.graph_parser import _norm, extract_edges
-from app.utils.timing import log_timing, logger
+from app.utils.timing import log_timing
+
+
 
 _TRIPLET_RE = re.compile(r"^\s*(.+?)\s*--\[?(.+?)\]?-->\s*(.+?)\s*$")
-
+_NON_WORD_RE = re.compile(r"[\W_]+")
 
 def _parse_correction(s: str) -> Optional[dict]:
     """Turn 'subject --[relation]--> object' into a triplet dict, or None when the model wrote
-    guidance instead of a triplet. Guidance is still shown to the student as a hint; it just cannot
-    be offered as an edge to draw."""
+    guidance instead of a triplet."""
     if not s or not s.strip():
         return None
     m = _TRIPLET_RE.match(s.strip())
@@ -28,18 +26,26 @@ def _parse_correction(s: str) -> Optional[dict]:
     subj, pred, obj = (p.strip() for p in m.groups())
     return {"subject": subj, "predicate": pred, "object": obj} if subj and pred and obj else None
 
+def _words_only(s: str) -> str:
+    """Reduce text to lowercase words separated by single spaces, so Markdown markers,
+    punctuation, curly quotes and dashes cannot cause a mismatch."""
+    s = unicodedata.normalize("NFKC", s or "").casefold()
+    return _NON_WORD_RE.sub(" ", s).strip()
 
 def _verify_quote(quote: str, source_text: str) -> bool:
-    """Whitespace-normalised substring check. 'unsupported' and empty are not quotes and are
-    exempt - only a non-empty quote that is absent from the text is a failure."""
-    q = " ".join((quote or "").split()).casefold()
+    """True if the quote's words appear, contiguous and in order, in the source text.
+    'unsupported' and empty are not quotes and are exempt."""
+    q = _words_only(quote)
     if not q or q == "unsupported":
         return True
-    return q in " ".join(source_text.split()).casefold()
+    # pad with spaces so the match starts and ends on whole words
+    return f" {q} " in f" {_words_only(source_text)} "
 
 
 def _is_edge(e: dict) -> bool:
-    return isinstance(e, dict) and e.get("subject") and e.get("predicate") and e.get("object")
+    return bool(isinstance(e, dict) and e.get("subject") and e.get("predicate") and e.get("object"))
+
+
 
 
 @log_timing
@@ -47,17 +53,19 @@ async def evaluate_map(source_text: str, edges: List[dict],
                        model: str = "gpt-4o-mini") -> Tuple[List[dict], dict]:
     non_edges = [e for e in edges if not _is_edge(e)]
     edges = [dict(e) for e in edges if _is_edge(e)]
+    
+    # if no complete edges, meaning only isolated nodes, return early with empty results
     if not edges:
         return non_edges, {"summary": {"verified": 0, "flagged": 0, "blocked": 0},
                     "results": [], "student": []}
 
-    # Skip edges already judged (either direction). The frontend clears both fields when the
+    # Skip edges already judged (either as correct or incorrect). The frontend clears both fields when the
     # student edits a triplet, so an unchanged triplet is never re-evaluated.
     already_judged = {i for i, e in enumerate(edges)
                       if e.get("verified") or e.get("flagged")}
     to_grade = {i: e for i, e in enumerate(edges) if i not in already_judged}
 
-    # Nothing left to grade.
+    # Nothing left to grade, so return the existing graph and a report based on the already existing judgments.
     if not to_grade:
         results, student = [], []
         for e in edges:
@@ -114,10 +122,10 @@ async def evaluate_map(source_text: str, edges: List[dict],
     by_idx = {ev.edge_index: ev for ev in result.evaluations}
     missing = [i for i in to_grade if i not in by_idx]
     if missing:
-        print(f"   [evaluate_map: model returned no verdict for indices {missing}]")
-
+        logger.warning("evaluate_map: no verdict for indices %s", missing)
+    
+    
     results, student = [], []
-
     for i, edge in enumerate(edges):
         trip = {"subject": edge["subject"], "predicate": edge["predicate"],
                 "object": edge["object"]}
@@ -142,6 +150,8 @@ async def evaluate_map(source_text: str, edges: List[dict],
             continue
 
         ev = by_idx.get(i)
+
+        # Model returned no verdict for this edge, save as unevaluated so it can be reviewed next turn.
         if ev is None:
             results.append({"triplet": trip, "state": "flagged", "status": "not_evaluated"})
             student.append({"triplet": trip, "state": "flagged", "status": "not_evaluated",

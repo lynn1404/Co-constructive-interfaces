@@ -41,39 +41,42 @@ class ShapeClassification(BaseModel):
     )
 
 class EdgeEvaluation(BaseModel):
-    """One edge's verdict from the batch pass."""
- 
+    """One edge's verdict from the batch pass. Fields are generated in declaration order:
+    evidence and reasoning first, verdict after."""
+
     edge_index: int = Field(
         description="The index of the edge being evaluated, matching the input list exactly."
     )
     text_grounded: str = Field(
-        description="When the verdict is 'correct': the VERBATIM span of the reference text that "
-                    "grounds this edge, copied character for character - no paraphrase, no ellipses. "
-                    "Quote the heading or the definition line when that is what carries the relation. "
-                    "When the verdict is 'incorrect': the single word 'unsupported'."
+        description="The VERBATIM span of the reference text most relevant to this edge, copied "
+                    "character for character - no paraphrase, no ellipses. Quote the heading or the "
+                    "definition line when that is what carries the relation. The single word "
+                    "'unsupported' only if the text never relates these two concepts."
     )
     justification: str = Field(
-            description="1-3 sentences explaining the verdict, paraphrasing the relevant part of the text "
+        description="1-3 sentences explaining the verdict, paraphrasing the relevant part of the text "
                     "rather than quoting it. Mention clause-splitting, duplication, or contradiction "
                     "with other edges when relevant."
     )
     verdict: Literal["correct", "incorrect"] = Field(
-            description="'correct' if the relationship is stated, explicitly or implicitly, or "
-                        "unambiguously inferable from the text Check the direction and kind before marking correct."
-                        "'incorrect' if it contradicts the text, reverses direction, misstates the relation, or "
-                        "relates two concepts the text does not connect. "
-        )
+        description="'correct' if the relationship is stated explicitly or implicitly, or is "
+                    "unambiguously inferable from the text. Check the direction and relation kind "
+                    "before marking correct. 'incorrect' if it contradicts the text, reverses "
+                    "direction, misstates the relation, or relates two concepts the text does not "
+                    "connect."
+    )
     confidence: float = Field(
-            ge=0.0, le=1.0,
-            description="Confidence in this verdict, 0-1."
-        )
+        ge=0.0, le=1.0,
+        description="Confidence in this verdict, 0-1."
+    )
     suggested_correction: str = Field(
         description="When incorrect: first check whether the text supports a corrected version of "
                     "this edge. If it does, write it as 'subject --[relation]--> object' and verify "
-                    "it holds before including it - if it does not hold on reflection, fall back to "
-                    "short guidance. If the text supports nothing close to this edge, write short "
-                    "guidance only. Empty string when correct."
+                    "it holds before including it. If it does not hold, or the text supports nothing "
+                    "close to this edge, write a one-sentence hint instead, with no label or prefix. "
+                    "Empty string when correct."
     )
+
  
  
 class MapEvaluation(BaseModel):
