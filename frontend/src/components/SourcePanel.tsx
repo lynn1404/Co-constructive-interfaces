@@ -8,6 +8,7 @@ import "./SourcePanel.css";
 import { useEffect } from "react";
 import type { TextHighlight, ChatClassification, MappableShape } from "../types";
 import type { Edge } from "@xyflow/react";
+import {debugLog} from "../utils/debug";
 
 export type HighlightMode = "concepts" | "phrases";
 
@@ -196,9 +197,10 @@ export function SourcePanel({
     try {
       const history = turns.map((t) => ({ role: t.role, content: t.content }));
       const { answer, classification } = await sendChat({ message, history });
-      console.log("chat question:", message);
-      console.log("chat answer:", answer);
-      console.log("chat classification:", classification);
+      debugLog("chat question:", message);
+      debugLog("chat answer:", answer);
+      debugLog("chat classification:", classification);
+
       setTurns((prev) => [
         ...prev,
         { id: crypto.randomUUID(), role: "assistant", content: answer, classification },
