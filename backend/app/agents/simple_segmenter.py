@@ -1,19 +1,16 @@
 from typing import Optional
+
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
+
 from app.utils.graph_parser import _norm
 from app.utils.timing import logger
-from app.schemas import SimpleSegmenterOutput, ExtractedConcept
+from app.schemas import SimpleSegmenterOutput
 from app.prompts import SIMPLE_SEGMENTER_SYSTEM_PROMPT
  
-async def simple_segment_concepts(highlighted_text: str,
-                           full_text: Optional[str] = None) -> dict:
-    """Extract node-ready concepts from a student's highlighted span.
- 
+async def simple_segment_concepts(highlighted_text: str, full_text: Optional[str] = None) -> dict:
+    """Extract concepts from a student's highlighted span.
     Paraphrase is allowed - the model suggests clean node labels, not verbatim extracts.
-    The only guard is deduplication; the earlier substring check is removed because it
-    blocked legitimate gerund rewrites, which is exactly what this agent now produces.
- 
     Returns {"concepts": [{label, source_span}], "n_concepts": int, "reasoning": str}.
     """
     if not highlighted_text or not highlighted_text.strip():
@@ -43,7 +40,7 @@ async def simple_segment_concepts(highlighted_text: str,
             "source_span": " ".join((c.source_span or "").split()) or label,
         })
  
-    logger.info(f"segment_concepts: {len(concepts)} concept(s) from {len(highlighted_text)}-char span")
+    logger.info("segment_concepts: %d concept(s) from %d-char span", len(concepts), len(highlighted_text))
     return {
         "concepts": concepts,
         "n_concepts": len(concepts),

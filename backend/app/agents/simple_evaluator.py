@@ -51,6 +51,13 @@ def _is_edge(e: dict) -> bool:
 @log_timing
 async def evaluate_map(source_text: str, edges: List[dict],
                        model: str = "gpt-4o-mini") -> Tuple[List[dict], dict]:
+    """
+    Evaluates a student's knowledge graph by validating each complete triplet against
+    the reference text using an LLM. Preserves previously judged edges, evaluates only
+    new or modified edges, verifies supporting quotes, and returns updated graph data
+    along with evaluation results and student-facing feedback.
+    """
+    
     non_edges = [e for e in edges if not _is_edge(e)]
     edges = [dict(e) for e in edges if _is_edge(e)]
     
