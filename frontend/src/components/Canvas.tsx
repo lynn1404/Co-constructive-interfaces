@@ -74,6 +74,11 @@ interface Props {
   restrictedLinks: boolean;
 }
 
+/**
+ * Right panel: the concept map, built with React Flow. Turns highlights into nodes, lets the
+ * student draw and label edges, merge and delete nodes, and runs the three backend checks
+ * (verify, similar nodes, gap analysis), whose results appear on the edges and in dialogs.
+ */
 export function Canvas(props: Props) {
   // useReactFlow() only works inside a ReactFlowProvider, hence the inner component
   return (
@@ -123,6 +128,7 @@ function CanvasInner({
 
   // ---- custom node and edge types (memoised: React Flow re-mounts them if these objects change)
 
+  // lets a node or edge in edit mode claim the next text highlight as its new label
   const registerEditingHandler = useCallback(
     (fn: ((text: string) => void) | null) => {
       editingHighlightRef.current = fn;
@@ -142,6 +148,7 @@ function CanvasInner({
     [setEdges],
   );
 
+  // remove an edge, and un-grey its label's text in the source panel
   const deleteEdge = useCallback(
     (edgeId: string) => {
       const edge = edges.find((e) => e.id === edgeId);
@@ -152,6 +159,7 @@ function CanvasInner({
     [edges, onEdgeLabelRemoved, setEdges],
   );
 
+  // the 🗒 button on an edge: open the verification panel scrolled to that edge
   const openPanelForEdge = useCallback((edgeId: string) => {
     setFocusEdgeId(edgeId);
     setPanelOpen(true);
@@ -232,6 +240,7 @@ function CanvasInner({
 
   // ---- creating and deleting nodes
 
+  // "+ Add Node": an empty node in the middle of the view, already in edit mode
   function handleCreateNode() {
     const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
     setNodes((currentNodes) => [
@@ -240,12 +249,14 @@ function CanvasInner({
     ]);
   }
 
+  // drawer mode only: allow concepts to be dropped on the canvas
   function handleDragOver(event: React.DragEvent) {
     if (!drawerMode) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
   }
 
+  // drawer mode only: a concept chip dropped on the canvas becomes a node at the drop point
   function handleDrop(event: React.DragEvent) {
     if (!drawerMode) return;
     event.preventDefault();
@@ -261,6 +272,7 @@ function CanvasInner({
     onConceptPlaced(highlight.id);
   }
 
+  // nodes deleted (Delete key or dialog): drop their edges too, and un-grey all their text
   function handleNodesDelete(deletedNodes: Node[]) {
     const deletedIds = new Set(deletedNodes.map((n) => n.id));
     const cascadedEdges = edges.filter((e) => deletedIds.has(e.source) || deletedIds.has(e.target));
@@ -277,6 +289,7 @@ function CanvasInner({
     });
   }
 
+  // the delete-confirmation dialog was accepted
   function confirmDeleteNode() {
     const node = nodes.find((n) => n.id === deleteConfirmNodeId);
     setDeleteConfirmNodeId(null);
@@ -285,6 +298,7 @@ function CanvasInner({
     handleNodesDelete([node]);
   }
 
+  // "Merge" dialog confirmed: fold the selected nodes into one (see mergeNodes)
   function handleMerge(nodeIds: string[], mainLabel: string) {
     const merged = mergeNodes(nodes, edges, nodeIds, mainLabel);
     if (!merged) return;
@@ -295,6 +309,7 @@ function CanvasInner({
 
   // ---- creating edges
 
+  // React Flow reports edge changes (select, remove…); un-grey the labels of removed edges
   function handleEdgesChange(changes: EdgeChange[]) {
     const removedIds = changes.filter((c) => c.type === "remove").map((c) => c.id);
     edges
@@ -341,6 +356,7 @@ function CanvasInner({
     };
   }
 
+  // free-text mode: the new edge waits for its label (typed, or highlighted in the text)
   function createDraftEdge(
     source: string,
     target: string,
@@ -351,6 +367,7 @@ function CanvasInner({
     setEdges((eds) => [...clearPending(eds), edge]);
   }
 
+  // category mode: the relation was picked first, so the edge(s) are created already labelled
   function createLinkedEdge(connection: PendingConnection, link: string) {
     const newEdges = connection.targets.map((target) =>
       makeEdge(connection.source, target, connection.sourceHandle, connection.targetHandle, link, false),
@@ -367,10 +384,12 @@ function CanvasInner({
     return [actualTarget];
   }
 
+  // remember which node the drag started from, to tell the edge's real direction in handleConnect
   const handleConnectStart: OnConnectStart = (_event, params) => {
     connectStartNodeId.current = params.nodeId;
   };
 
+  // a drag between two nodes was released on a node: create the edge, or wait for the picker
   function handleConnect(connection: Connection) {
     const startId = connectStartNodeId.current;
     const isReversed = startId && startId !== connection.source;
@@ -397,6 +416,7 @@ function CanvasInner({
     connectStartNodeId.current = null; // reset for next drag
   }
 
+  // remember which node the drag ended in, to tell the edge's real direction in handleConnect
   function handleConnectEnd(event: MouseEvent | TouchEvent) {
     const data = pendingConnectionDataRef.current;
     pendingConnectionDataRef.current = null;
@@ -407,7 +427,7 @@ function CanvasInner({
   }
 
   // ---- selection
-
+  // keep the selected-node list in sync (for Merge and multi-target edges)
   function handleSelectionChange({ nodes: selectedNodes }: OnSelectionChangeParams) {
     const ids = selectedNodes.map((n) => n.id);
     if (!sameIds(ids, lastSelectedNodeIdsRef.current)) {
@@ -435,6 +455,7 @@ function CanvasInner({
   const panelEntries = useMemo(() => buildPanelEntries(nodes, edges), [nodes, edges]);
   const allVerified = panelEntries.length > 0 && panelEntries.every((e) => e.verification !== null);
 
+  // "Verify Graph": grade the edges against the text and show the verdicts on the map
   async function handleVerifyGraph() {
     const response = await verifyRequest.run(() =>
       verifyGraph({ source_text: sourceText, existing_graph: buildGraphSnapshot(nodes, edges) }),
@@ -447,6 +468,7 @@ function CanvasInner({
     setPanelOpen(true);
   }
 
+  // "Analyze Gaps": ask which ideas in the text the verified map does not cover yet
   async function handleAnalyzeGaps() {
     const response = await gapsRequest.run(() =>
       analyzeGapsSimple({ source_text: sourceText, existing_graph: buildGraphSnapshot(nodes, edges) }),
@@ -456,6 +478,7 @@ function CanvasInner({
     setGapResult({ gaps: response.gaps, overall: response.overall });
   }
 
+  // "Check similar nodes": ask which node labels name the same concept
   async function handleCheckSimilarNodes() {
     const response = await similarRequest.run(() =>
       checkResolveNodes({ existing_graph: buildGraphSnapshot(nodes, edges) }),

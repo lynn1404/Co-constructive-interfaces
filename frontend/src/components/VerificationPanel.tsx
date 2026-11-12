@@ -19,7 +19,6 @@ interface Props {
   onConfirmCorrect?: (edgeId: string) => void;
 }
 
-
 function statusLabel(entry: PanelEntry["verification"]): { text: string; className: string } {
   if (entry?.state === "verified") return { text: "correct", className: "verification-card__badge--correct" };
   if (entry?.status === "incorrect") {
@@ -28,7 +27,10 @@ function statusLabel(entry: PanelEntry["verification"]): { text: string; classNa
   return { text: "not yet verified", className: "verification-card__badge--pending" };
 }
 
-
+/**
+ * Side panel listing every labelled edge with its verdict from the last "Verify Graph": a badge,
+ * the hint and any suggested correction. The student can confirm a flagged edge as correct.
+ */
 export function VerificationPanel({
   entries,
   focusEdgeId,
@@ -117,23 +119,22 @@ export function VerificationPanel({
                 </button>
               )}
 
-                  {entry.verification?.hint && (
-                    <p className="verification-card__hint"> {entry.verification.hint}</p>
-                  )}
-                  {entry.verification?.suggested_triplets &&
-                    entry.verification.suggested_triplets.length > 0 && (
-                      <div className="verification-card__suggestions">
-                        <div className="verification-card__suggestions-title">Suggested:</div>
-                        <ul>
-                          {entry.verification.suggested_triplets.map((t, i) => (
-                            <li key={i}>
-                              {t.subject} <span className="verification-card__arrow">→</span> {t.predicate}{" "}
-                              <span className="verification-card__arrow">→</span> {t.object}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}             
+              {entry.verification?.hint && (
+                <p className="verification-card__hint"> {entry.verification.hint}</p>
+              )}
+              {entry.verification?.suggested_triplets && entry.verification.suggested_triplets.length > 0 && (
+                <div className="verification-card__suggestions">
+                  <div className="verification-card__suggestions-title">Suggested:</div>
+                  <ul>
+                    {entry.verification.suggested_triplets.map((t, i) => (
+                      <li key={i}>
+                        {t.subject} <span className="verification-card__arrow">→</span> {t.predicate}{" "}
+                        <span className="verification-card__arrow">→</span> {t.object}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           );
         })}

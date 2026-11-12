@@ -25,7 +25,6 @@ export interface StudentVerificationEntry {
   suggested_triplets: Triplet[];
 }
 
-
 export interface VerifyGraphRequest {
   source_text: string;
   existing_graph: GraphSnapshotEntry[];

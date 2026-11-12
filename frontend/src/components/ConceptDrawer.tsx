@@ -7,6 +7,7 @@ interface Props {
   concepts: TextHighlight[];
 }
 
+/** "Hide text after extraction" mode: the extracted concepts as chips to drag onto the canvas. */
 export function ConceptDrawer({ concepts }: Props) {
   return (
     <div className="concept-drawer">

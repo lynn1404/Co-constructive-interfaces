@@ -30,7 +30,11 @@ function edgePathStyle(verification: StudentVerificationEntry | null | undefined
   return { strokeDasharray: "6 4" };
 }
 
-
+/**
+ * An arrow between two concepts, drawn as a curve from border to border (parallel edges between
+ * the same nodes curve apart). Shows its relation label and verification verdict (colour and
+ * ✓ / ! icon), and lets the student edit the label as free text or through EdgeLinkPicker.
+ */
 export function FloatingEdge({
   id,
   source,
@@ -63,7 +67,6 @@ export function FloatingEdge({
     setPickerAnchor({ x: rect.left + rect.width / 2, y: rect.bottom + 16 });
   }, [showingPicker]);
 
-
   if (!sourceNode || !targetNode) return null;
 
   const sourceRect = {
@@ -94,6 +97,7 @@ export function FloatingEdge({
   const sourceLabel = (sourceNode.data.label as string | undefined) ?? "source node";
   const targetLabel = (targetNode.data.label as string | undefined) ?? "destination node";
 
+  // free-text mode: save the typed label (Enter or click away)
   function handleSubmit() {
     if (draftLabel.trim().length === 0) return;
     edgeData?.onSubmitLabel?.(draftLabel.trim());
@@ -102,12 +106,14 @@ export function FloatingEdge({
     registerEditingHandler(null);
   }
 
+  // category mode: a relation was picked in EdgeLinkPicker
   function submitLink(link: string) {
     edgeData?.onSubmitLabel?.(link);
     setIsEditingLabel(false);
     registerEditingHandler(null);
   }
 
+  // clicking the label: edit it, by typing or by highlighting text in the source panel
   function startEditingLabel() {
     if (!edgeData?.label) return;
     setDraftLabel(edgeData.label);
@@ -126,6 +132,7 @@ export function FloatingEdge({
     registerEditingHandler(null);
   }
 
+  // the picker was closed without choosing: cancel the edit, or drop an edge that has no label yet
   function closePicker() {
     if (isEditingLabel) {
       cancelEditingLabel();
@@ -197,10 +204,7 @@ export function FloatingEdge({
                 </span>
               )}
               {showWorthCheck && (
-                <span
-                  className="edge-status-icon edge-status-icon--worth-check"
-                   title="Worth another check"
-                >
+                <span className="edge-status-icon edge-status-icon--worth-check" title="Worth another check">
                   !
                 </span>
               )}

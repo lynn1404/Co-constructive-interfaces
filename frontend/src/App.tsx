@@ -12,6 +12,11 @@ import "./App.css";
 // Case- and whitespace-insensitive key, so "Stress " and "stress" count as the same text.
 const textKey = (text: string) => text.trim().toLowerCase();
 
+/**
+ * Root component. Holds the state shared by both halves of the screen - the source text, its
+ * highlights (which become concept nodes) and the map's edges - and switches between the chat
+ * view and the split "source text | concept map" view.
+ */
 export default function App() {
   const [submittedText, setSubmittedText] = useState<string | null>(null);
   const [edges, setEdges] = useState<Edge[]>([]);
@@ -29,6 +34,7 @@ export default function App() {
   // handler here so the next text highlight replaces its label instead of creating a new node
   const editingHighlightRef = useRef<((text: string) => void) | null>(null);
 
+  // a node was deleted on the map: forget its highlight and un-grey its text
   function handleNodeDeleted(nodeId: string) {
     // removes highlight and ungreys text
     const deletedHighlight = highlights.find((h) => h.id === nodeId);
@@ -38,13 +44,13 @@ export default function App() {
     setReadMarks((prev) => prev.filter((r) => textKey(r.text) !== textKey(deletedHighlight.text)));
   }
 
+  // ungreys text when an edge label is removed
   function handleEdgeLabelRemoved(labelText: string) {
-    // ungreys text when an edge label is removed
     setReadMarks((prev) => prev.filter((r) => textKey(r.text) !== textKey(labelText)));
   }
 
+  // clear the text, the map and all marks, and return to the chat
   function handleReset() {
-    // clear the text, the map and all marks, and return to the chat
     setSubmittedText(null);
     setEdges([]);
     setHighlights([]);
@@ -56,18 +62,19 @@ export default function App() {
     setCanvasOpen(false);
   }
 
+  // fills the concepts drawer in shuffled order
   function handleFinishExtraction() {
-    // fills the concepts drawer in shuffled order
     setDrawerConcepts(shuffle(highlights));
     setExtractionDone(true);
   }
 
+  // drawer mode: a concept was dragged onto the canvas, so remove it from the drawer
   function handleConceptPlaced(highlightId: string) {
     setDrawerConcepts((prev) => prev.filter((h) => h.id !== highlightId));
   }
 
+  // opens the canvas with the submitted text
   function handleOpenCanvas(text: string) {
-    // opens the canvas with the submitted text
     setSubmittedText(text);
     setSubmissionId(crypto.randomUUID());
     setHighlights([]);

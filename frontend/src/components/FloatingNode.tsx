@@ -31,6 +31,11 @@ interface FloatingNodeExtraProps {
   onRequestDelete?: (nodeId: string) => void;
 }
 
+/**
+ * A concept box on the map. Its label is edited in place - typed, or replaced by highlighting
+ * text in the source panel while editing - and a small toolbar sets its colour or deletes it.
+ * "Floating": edges attach anywhere on its border instead of to fixed connection points.
+ */
 export function FloatingNode({
   id,
   data,
@@ -92,6 +97,7 @@ export function FloatingNode({
     updateNodeData(id, { color: newColor });
   }
 
+  // enter edit mode; highlighting text in the source panel meanwhile replaces the label
   function startEditing() {
     setDraftLabel(nodeData.label);
     setIsEditing(true);
@@ -104,6 +110,7 @@ export function FloatingNode({
     });
   }
 
+  // Enter or click away: save the new label, and clear verdicts on this node's edges
   function commitEdit() {
     const trimmed = draftLabel.trim();
     if (trimmed.length > 0) {

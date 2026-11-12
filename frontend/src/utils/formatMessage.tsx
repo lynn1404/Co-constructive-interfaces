@@ -20,6 +20,11 @@ function splitTableRow(line: string): string[] {
   return s.split("|").map((c) => c.trim());
 }
 
+/**
+ * Render the llms's Markdown (headings, lists, bold, code, links, tables) as React nodes, and
+ * return the same text without Markdown syntax (`plainText`) so highlight offsets match what the
+ * browser displays.
+ */
 export function formatMessage(text: string): FormattedMessage {
   const plain: string[] = [];
 

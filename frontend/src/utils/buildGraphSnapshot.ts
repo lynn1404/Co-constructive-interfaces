@@ -13,6 +13,11 @@ export type GraphSnapshotEntry =
     }
   | { node: string };
 
+/**
+ * Convert the React Flow graph into the list the backend expects: one {subject, predicate, object}
+ * entry per labelled edge (with its verified/flagged state, so judged edges are not re-graded) and
+ * one {node} entry per node with no edges.
+ */
 export function buildGraphSnapshot(nodes: Node[], edges: Edge[]): GraphSnapshotEntry[] {
   const connectedNodeIds = new Set<string>();
   const entries: GraphSnapshotEntry[] = [];

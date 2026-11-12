@@ -50,6 +50,9 @@ interface Props {
   onBackToChat: () => void;
 }
 
+/**
+ * Left panel: the source text, with highlights and read marks.
+ */
 export function SourcePanel({
   highlights,
   setHighlights,
@@ -113,6 +116,7 @@ export function SourcePanel({
   useCssHighlight(messageBodyRef, "read-highlight", readMarks, formattedCanvasMessage);
   useCssHighlight(messageBodyRef, "spotlight-highlight", spotlightSpans, formattedCanvasMessage);
 
+  // send the draft to the assistant; on success the answer becomes the source text for a new map
   async function handleSubmit() {
     if (!draft.trim() || sending) return;
     const message = draft;
@@ -147,6 +151,7 @@ export function SourcePanel({
     }
   }
 
+  // the student released a text selection: turn it into a node, an edge label, or a renamed label
   async function handleMouseUp() {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed || selection.rangeCount === 0) return;
@@ -222,6 +227,7 @@ export function SourcePanel({
     }
   }
 
+  // a banner button was clicked: open the canvas with that answer as the source text
   function handleOpenCanvasFor(rawContent: string) {
     setCanvasRawText(rawContent);
     onOpenCanvas(formatMessage(rawContent).plainText);

@@ -19,6 +19,10 @@ interface DragState {
   baseY: number;
 }
 
+/**
+ * Draggable menu for choosing an edge's relation from LINK_CATEGORIES (e.g. "Cause & Effect" ->
+ * "causes") or typing a custom one. Rendered in a portal so it floats above the map.
+ */
 export function EdgeLinkPicker({ anchor, sourceLabel, targetLabel, onSubmit, onClose }: EdgeLinkPickerProps) {
   const [position, setPosition] = useState(anchor);
   const [category, setCategory] = useState<string | null>(null);
