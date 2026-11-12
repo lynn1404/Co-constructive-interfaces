@@ -1,6 +1,6 @@
 import { useInternalNode, useStore, EdgeLabelRenderer, type EdgeProps } from "@xyflow/react";
 import { getBorderIntersection, getParallelIndex, getCurvedMidpoint } from "../utils/edgeGeometry";
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import "./FloatingEdge.css";
 import type { StudentVerificationEntry } from "../types";
@@ -20,27 +20,16 @@ interface FloatingEdgeExtraProps {
   restrictedLinks: boolean;
 }
 
+// green = verified correct, blue = worth another check, dashed = not checked yet
 function edgePathStyle(verification: StudentVerificationEntry | null | undefined): {
   stroke?: string;
   strokeDasharray?: string;
 } {
-  if (!verification || verification.state === "blocked") {
-    return { strokeDasharray: "6 4" };
-  }
-  if (verification.state === "verified") {
-    return { stroke: "#16a34a" };
-  }
-  switch (verification.status) {
-    case "incorrect":
-      return { stroke: "#2563eb" };
-    case "incomplete":
-      return { stroke: "#ca8a04" };
-    case "redundant":
-      return { stroke: "#9333ea" };
-    default:
-      return { strokeDasharray: "6 4" };
-  }
+  if (verification?.state === "verified") return { stroke: "#16a34a" };
+  if (verification?.status === "incorrect") return { stroke: "#2563eb" };
+  return { strokeDasharray: "6 4" };
 }
+
 
 export function FloatingEdge({
   id,
@@ -66,18 +55,14 @@ export function FloatingEdge({
   const edgeData = data as FloatingEdgeData | undefined;
   const showingPicker = restrictedLinks && (edgeData?.isPending || isEditingLabel);
 
-  useEffect(() => {
-    if (!showingPicker) {
-      setPickerAnchor(null);
-      return;
-    }
-    if (labelRef.current) {
-      const rect = labelRef.current.getBoundingClientRect();
-      setPickerAnchor({ x: rect.left + rect.width / 2, y: rect.bottom + 16 });
-    }
-    // anchor is captured once when the picker opens; it intentionally does not
-    // track the label afterwards so a manual drag isn't undone by re-renders.
+  // Measure where the label sits each time the picker opens, so the picker appears under it.
+  // Captured once: it does not follow the label afterwards, so a manual drag isn't undone.
+  useLayoutEffect(() => {
+    if (!showingPicker || !labelRef.current) return;
+    const rect = labelRef.current.getBoundingClientRect();
+    setPickerAnchor({ x: rect.left + rect.width / 2, y: rect.bottom + 16 });
   }, [showingPicker]);
+
 
   if (!sourceNode || !targetNode) return null;
 
@@ -153,7 +138,6 @@ export function FloatingEdge({
   const verification = edgeData?.verification;
   const showCheck = verification?.state === "verified";
   const showWorthCheck = verification?.state === "flagged" && verification.status === "incorrect";
-  const showBlocked = verification?.state === "blocked";
 
   return (
     <>
@@ -215,18 +199,9 @@ export function FloatingEdge({
               {showWorthCheck && (
                 <span
                   className="edge-status-icon edge-status-icon--worth-check"
-                  title={
-                    verification?.error_type
-                      ? `Worth another check (${verification.error_type.replace(/_/g, " ")})`
-                      : "Worth another check"
-                  }
+                   title="Worth another check"
                 >
                   !
-                </span>
-              )}
-              {showBlocked && (
-                <span className="edge-status-icon edge-status-icon--blocked" title="Blocked">
-                  ⊘
                 </span>
               )}
               <span

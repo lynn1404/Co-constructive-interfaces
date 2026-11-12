@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Handle, Position, NodeToolbar, useReactFlow, type NodeProps } from "@xyflow/react";
 import "./FloatingNode.css";
 
-export const NODE_COLORS = {
+const NODE_COLORS = {
   white: "#ffffff",
   green: "#dcfce7",
   blue: "#dbeafe",
@@ -11,7 +11,7 @@ export const NODE_COLORS = {
   yellow: "#fef9c3",
 } as const;
 
-export type NodeColor = keyof typeof NODE_COLORS;
+type NodeColor = keyof typeof NODE_COLORS;
 
 interface FloatingNodeData {
   label: string;

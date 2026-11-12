@@ -475,9 +475,7 @@ function CanvasInner({
           triplet,
           state: "verified",
           status: null,
-          error_type: null,
           hint: null,
-          reflection: null,
           suggested_triplets: [],
         };
         return { ...e, data: { ...e.data, verification } };

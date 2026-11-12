@@ -17,26 +17,14 @@ export interface Triplet {
   object: string;
 }
 
-// ---- Verify (/simple-evaluate)
 export interface StudentVerificationEntry {
   triplet: Triplet;
-  // "blocked", "incomplete", "redundant", error_type and reflection are not sent by the current
-  // evaluator; still referenced by FloatingEdge and VerificationPanel (to remove with them).
-  state: "verified" | "flagged" | "blocked";
-  status: "correct" | "incorrect" | "incomplete" | "redundant" | "not_evaluated" | null;
-  error_type?:
-    | "duplicate"
-    | "unfinished_process"
-    | "skipped_mediator"
-    | "not_in_text"
-    | "wrong_object"
-    | "wrong_subject"
-    | "reversed_relation"
-    | null;
+  state: "verified" | "flagged";
+  status: "incorrect" | "not_evaluated" | null;
   hint: string | null;
-  reflection?: string | null;
   suggested_triplets: Triplet[];
 }
+
 
 export interface VerifyGraphRequest {
   source_text: string;
