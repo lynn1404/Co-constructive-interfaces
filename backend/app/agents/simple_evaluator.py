@@ -61,7 +61,7 @@ async def evaluate_map(source_text: str, edges: list[dict]) -> tuple[list[dict],
 
     # if no complete edges, meaning only isolated nodes, return early with empty results
     if not edges:
-        return non_edges, {"summary": {"verified": 0, "flagged": 0, "blocked": 0},
+        return non_edges, {"summary": {"verified": 0, "flagged": 0},
                     "results": [], "student": []}
 
     # Skip edges already judged (either as correct or incorrect). The frontend clears both fields when the
@@ -91,7 +91,6 @@ async def evaluate_map(source_text: str, edges: list[dict]) -> tuple[list[dict],
         summary = {
             "verified": sum(1 for r in results if r["state"] == "verified"),
             "flagged":  sum(1 for r in results if r["state"] == "flagged"),
-            "blocked":  0,
         }
         return non_edges + edges, {"summary": summary, "results": results, "student": student}
 
@@ -198,6 +197,5 @@ async def evaluate_map(source_text: str, edges: list[dict]) -> tuple[list[dict],
     summary = {
         "verified": sum(1 for r in results if r["state"] == "verified"),
         "flagged":  sum(1 for r in results if r["state"] == "flagged"),
-        "blocked":  0,
     }
     return non_edges + edges, {"summary": summary, "results": results, "student": student}
