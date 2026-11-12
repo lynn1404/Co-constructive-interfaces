@@ -4,6 +4,22 @@ A learning tool that turns an AI chatbot answer into a diagram the student has t
 
 The AI never draws the diagram. It checks the student's work, points at what is missing without giving the answer away, and explains mistakes. The understanding is built by the student, with the AI as a reviewer: *co-constructive*.
 
+## Contents
+
+- [The problem](#the-problem)
+- [The solution](#the-solution)
+- [General workflow](#general-workflow)
+- [Features and API](#features-and-api)
+  - [Chat and diagram suggestion](#1-chat-and-diagram-suggestion)
+  - [Concept maps](#a-concept-maps)
+  - [Other diagrams (planned)](#b-other-diagrams-planned)
+- [Tech stack](#tech-stack)
+- [Project structure](#project-structure)
+- [Getting started](#getting-started)
+  - [Troubleshooting](#troubleshooting)
+  - [Configuration](#configuration)
+- [Next features](#next-features)
+
 ## The problem
 
 Chatbot answers are verbose and fluent, which make them prone to be read passively, inducing illustion of understanding where readers come away feeling they understood, without having processed or retained much.
