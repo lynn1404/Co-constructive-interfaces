@@ -79,14 +79,14 @@ async def evaluate_map(source_text: str, edges: list[dict]) -> tuple[list[dict],
                 results.append({"triplet": trip, "state": "verified",
                                  "note": "already verified"})
                 student.append({"triplet": trip, "state": "verified", "status": None,
-                                 "reflection": None, "hint": None, "suggested_triplets": []})
+                                 "hint": None, "suggested_triplets": []})
             else:
                 j = e.get("_judgment", {})
                 fix = _parse_correction(j.get("suggested_correction", ""))
                 results.append({"triplet": trip, "state": "flagged", "status": "incorrect",
                                  "note": "already judged"})
                 student.append({"triplet": trip, "state": "flagged", "status": "incorrect",
-                                 "reflection": None, "hint": j.get("justification"),
+                                 "hint": j.get("justification"),
                                  "suggested_triplets": [fix] if fix else []})
         summary = {
             "verified": sum(1 for r in results if r["state"] == "verified"),
@@ -140,7 +140,7 @@ async def evaluate_map(source_text: str, edges: list[dict]) -> tuple[list[dict],
                 results.append({"triplet": trip, "state": "verified",
                                  "note": "already verified"})
                 student.append({"triplet": trip, "state": "verified", "status": None,
-                                 "reflection": None, "hint": None,
+                                 "hint": None,
                                  "suggested_triplets": []})
             else:
                 j = edge.get("_judgment", {})
@@ -148,7 +148,6 @@ async def evaluate_map(source_text: str, edges: list[dict]) -> tuple[list[dict],
                 results.append({"triplet": trip, "state": "flagged", "status": "incorrect",
                                  "note": "already judged"})
                 student.append({"triplet": trip, "state": "flagged", "status": "incorrect",
-                                 "reflection": None,
                                  "hint": j.get("justification"),
                                  "suggested_triplets": [fix] if fix else []})
             continue
@@ -159,7 +158,6 @@ async def evaluate_map(source_text: str, edges: list[dict]) -> tuple[list[dict],
         if ev is None:
             results.append({"triplet": trip, "state": "flagged", "status": "not_evaluated"})
             student.append({"triplet": trip, "state": "flagged", "status": "not_evaluated",
-                            "reflection": None,
                             "hint": "Could not be checked - try again.",
                             "suggested_triplets": []})
             continue
@@ -175,7 +173,7 @@ async def evaluate_map(source_text: str, edges: list[dict]) -> tuple[list[dict],
                             "quote_verified": quote_ok,
                             "justification": ev.justification})
             student.append({"triplet": trip, "state": "verified", "status": None,
-                            "reflection": None, "hint": None, "suggested_triplets": []})
+                            "hint": None, "suggested_triplets": []})
         else:
             edge["flagged"] = True
             edge["_judgment"] = {
@@ -190,7 +188,6 @@ async def evaluate_map(source_text: str, edges: list[dict]) -> tuple[list[dict],
                             "justification": ev.justification,
                             "suggested_correction": ev.suggested_correction})
             student.append({"triplet": trip, "state": "flagged", "status": "incorrect",
-                            "reflection": None,
                             "hint": ev.justification,
                             "suggested_triplets": [fix] if fix else []})
 
